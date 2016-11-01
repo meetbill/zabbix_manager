@@ -1,0 +1,4 @@
+# 注释
+# description===hostid===ethernet port===default_speed
+描述===10084===Ethernet0/0===AUTO
+描述===10084===Ethernet0/0===1000

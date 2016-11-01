@@ -1,0 +1,4 @@
+size[available]
+agent.ping
+vfs.fs.size[/,pfree]
+system.cpu.load[percpu,avg1]
