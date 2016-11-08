@@ -1,6 +1,6 @@
 #!/usr/bin/python 
 #coding:utf-8 
-__version__ = "1.1.5"
+__version__ = "1.1.6"
  
 import json 
 import urllib2 
@@ -39,7 +39,7 @@ def warn_msg(msg):
     print "\033[43;37m[Warning]: %s \033[0m"%msg
 
 class zabbix_api: 
-    def __init__(self,terminal_table=False,debug=False,output=True,output_sort=False,sort_reverse=False): 
+    def __init__(self,terminal_table=False,debug=False,output=True,output_sort=False,sort_reverse=False,profile="zabbixserver"): 
         if os.path.exists(zabbix_config):
             config = ConfigParser.ConfigParser()
             config.read("zabbix_config.ini")
@@ -48,10 +48,10 @@ class zabbix_api:
             # 输出结果第几列排序
             self.output_sort = int(output_sort)
             self.reverse = sort_reverse
-            self.server = config.get("zabbixserver", "server")
-            self.port = config.get("zabbixserver", "port")
-            self.user = config.get("zabbixserver", "user")
-            self.password = config.get("zabbixserver", "password")
+            self.server = config.get(profile, "server")
+            self.port = config.get(profile, "port")
+            self.user = config.get(profile, "user")
+            self.password = config.get(profile, "password")
         else:
             print "the config file is not exist"
             exit(1)
@@ -2496,6 +2496,7 @@ if __name__ == "__main__":
             help='eg:"2,3,4"')
     parser_condition.add_argument('--hostid',nargs=1,metavar=('hostID'),dest='hostid',\
             help='eg:"10105,10106"')
+    parser_condition.add_argument('--profile',nargs='?',metavar=('zabbixserver'),dest='profile',default='list_profile',help='选择配置文件')
     parser_condition.add_argument('--zero',dest='zero',default="OFF",help='入库时有0',action="store_true")
     parser_condition.add_argument('--item_key',
                                 nargs=1,
@@ -2532,7 +2533,9 @@ if __name__ == "__main__":
     parser_issues.add_argument('--issues',dest='issues',help='查询最近问题',action="store_true")
     # alert
     # parser.add_argument('--alert',dest='alert_get',help='show the alert',action="store_true")
+    
 
+    #######################################################################################################
     if len(sys.argv)==1:
         print parser.print_help()
     else:
@@ -2562,9 +2565,21 @@ if __name__ == "__main__":
         sort_reverse = False
         if args.sort_reverse != "OFF":
             sort_reverse = True
+        
+        # 默认选中配置文件中的 zabbixserver section
+        if args.profile != 'list_profile' :
+            if args.profile:
+                profile = args.profile
+            else:
+                if os.path.exists(zabbix_config):
+                    config = ConfigParser.ConfigParser()
+                    config.read("zabbix_config.ini")
+                    print config.sections()
+                else:
+                    print "the zabbix_config.ini is not found"
+                sys.exit()
 
-
-        zabbix=zabbix_api(terminal_table,debug,output_sort=output_sort,sort_reverse=sort_reverse)
+        zabbix=zabbix_api(terminal_table,debug,output_sort=output_sort,sort_reverse=sort_reverse,profile = profile)
         if args.mysql_quota:
             zabbix.mysql_quota()
         export_xls = {"xls":"OFF",
@@ -2603,6 +2618,10 @@ if __name__ == "__main__":
             itemkey_list=0
 
         # 选择特定机器
+        if args.hostgroupid:
+            select_condition["hostgroupID"]=args.hostgroupid[0]
+        if args.hostid:
+            select_condition["hostID"] = args.hostid[0]
         if args.hostgroupid:
             select_condition["hostgroupID"]=args.hostgroupid[0]
         if args.hostid:
