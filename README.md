@@ -3,7 +3,7 @@
 [zabbix管理工具手册](./ZabbixTool/README.md)
 
 ## Supported versions
-> * zabbix3.0
+> * zabbix3.0.X
 
 ## 相关项目
 

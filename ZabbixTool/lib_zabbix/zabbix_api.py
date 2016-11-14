@@ -1,6 +1,6 @@
 #!/usr/bin/python 
 #coding:utf-8 
-__version__ = "1.1.6"
+__version__ = "1.1.6_1"
  
 import json 
 import urllib2 
@@ -2578,6 +2578,8 @@ if __name__ == "__main__":
                 else:
                     print "the zabbix_config.ini is not found"
                 sys.exit()
+        else:
+            profile = "zabbixserver"
 
         zabbix=zabbix_api(terminal_table,debug,output_sort=output_sort,sort_reverse=sort_reverse,profile = profile)
         if args.mysql_quota:
