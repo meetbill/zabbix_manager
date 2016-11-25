@@ -1,6 +1,6 @@
 #!/usr/bin/python 
 #coding:utf-8 
-__version__ = "1.1.6_1"
+__version__ = "1.1.7"
  
 import json 
 import urllib2 
@@ -59,10 +59,10 @@ class zabbix_api:
         self.url = 'http://%s:%s/api_jsonrpc.php' % (self.server,self.port) #修改URL
         self.header = {"Content-Type":"application/json"}
         self.terminal_table=terminal_table
-        self.authID = self.user_login() 
+        self.authID = self.__user_login() 
         logpath = "/tmp/zabbix_tool.log"
         self.logger = Log(logpath,level="debug",is_console=debug, mbs=5, count=5)
-    def user_login(self): 
+    def __user_login(self): 
         data = json.dumps({
                            "jsonrpc": "2.0",
                            "method": "user.login",
@@ -88,11 +88,16 @@ class zabbix_api:
             self.authID = response['result'] 
             return self.authID 
     def host_get(self,hostName=''): 
+        """
+        @brief return host list
+        @param hostName:hostname
+        """
         ##
         # @brief host_get 
         # @param hostName
         #
         # @return 
+
         data=json.dumps({
                 "jsonrpc": "2.0",
                 "method": "host.get",
@@ -101,7 +106,7 @@ class zabbix_api:
                           "filter":{"host":hostName},
                           "selectInterfaces":["ip"]
                           },
-                "auth": self.user_login(),
+                "auth": self.authID,
                 "id": 1
                 })
         request = urllib2.Request(self.url,data) 
@@ -151,7 +156,7 @@ class zabbix_api:
                           "output": "extend",
                           "selectInterfaces":["ip"]
                               },
-                    "auth": self.user_login(),
+                    "auth":self.authID,
                     "id": 1
                     })
         elif hostID:
@@ -167,7 +172,7 @@ class zabbix_api:
                           "output": "extend",
                           "selectInterfaces":["ip"]
                               },
-                    "auth": self.user_login(),
+                    "auth":self.authID,
                     "id": 1
                     })
         else:
@@ -178,7 +183,7 @@ class zabbix_api:
                           "output": "extend",
                           "selectInterfaces":["ip"]
                               },
-                    "auth": self.user_login(),
+                    "auth":self.authID,
                     "id": 1
                     })
 
@@ -236,7 +241,7 @@ class zabbix_api:
                                    "groups": group_list,
                                    "templates": template_list,
                                      }, 
-                           "auth": self.user_login(), 
+                           "auth":self.authID, 
                            "id":1                   
         }) 
         request = urllib2.Request(self.url, data) 
@@ -260,7 +265,7 @@ class zabbix_api:
             "hostid": self.host_get(hostname),
             "status": 1
             },
-            "auth": self.user_login(),
+            "auth":self.authID,
             "id": 1
         })
         request = urllib2.Request(self.url,data)
@@ -285,7 +290,7 @@ class zabbix_api:
                 "jsonrpc": "2.0",
                 "method": "host.delete",
                 "params": hostid_list,
-                "auth": self.user_login(),
+                "auth":self.authID,
                 "id": 1
                 })
         request = urllib2.Request(self.url,data) 
@@ -313,7 +318,7 @@ class zabbix_api:
                                                 "name": hostgroupName 
                                                 } 
                                      }, 
-                           "auth":self.user_login(), 
+                           "auth":self.authID, 
                            "id":1, 
                            }) 
          
@@ -349,7 +354,7 @@ class zabbix_api:
                                                 "groupid": groupid
                                                 } 
                                      }, 
-                           "auth":self.user_login(), 
+                           "auth":self.authID, 
                            "id":1, 
                            }) 
          
@@ -384,7 +389,7 @@ class zabbix_api:
                           "params": {
                           "name": hostgroupName
                           },
-                          "auth": self.user_login(),
+                          "auth":self.authID,
                           "id": 1
                           })
         request=urllib2.Request(self.url,data)
@@ -422,7 +427,7 @@ class zabbix_api:
                                      "output":"extend",
                                      "hostids":host_ID,
                                      }, 
-                           "auth":self.user_login(), 
+                           "auth":self.authID, 
                            "id":1, 
                            }) 
          
@@ -479,7 +484,7 @@ class zabbix_api:
                                      "output":"extend",
                                      "itemids":item_ID,
                                      }, 
-                           "auth":self.user_login(), 
+                           "auth":self.authID, 
                            "id":1, 
                            }) 
         request = urllib2.Request(self.url,data) 
@@ -524,7 +529,7 @@ class zabbix_api:
                                      "sortfield":"clock",
                                      "limit": 10080
                                      }, 
-                           "auth":self.user_login(), 
+                           "auth":self.authID, 
                            "id":1, 
                            }) 
         request = urllib2.Request(self.url,data) 
@@ -706,7 +711,7 @@ class zabbix_api:
                                "limit":"8760"
                                      }, 
 
-                           "auth":self.user_login(), 
+                           "auth":self.authID, 
                            "id":1, 
                            }) 
 
@@ -1203,7 +1208,7 @@ class zabbix_api:
                 "params": {
                     "output":"extend",
                 },
-                "auth": self.user_login(),
+                "auth":self.authID,
                 "id": 1
                 })
         # print data
@@ -1255,7 +1260,7 @@ class zabbix_api:
                                "itemids":itemID,
                                "limit":"8760"
                                      }, 
-                           "auth":self.user_login(), 
+                           "auth":self.authID, 
                            "id":1, 
                            }) 
          
@@ -1298,7 +1303,7 @@ class zabbix_api:
                                                  "name":templateName                                                        
                                                  } 
                                       }, 
-                           "auth":self.user_login(), 
+                           "auth":self.authID, 
                            "id":1, 
                            })
          
@@ -1387,7 +1392,7 @@ class zabbix_api:
                                       "rules": rules,
                                       "source":template
                                       }, 
-                           "auth":self.user_login(), 
+                           "auth":self.authID, 
                            "id":1, 
                            })
          
@@ -1420,7 +1425,7 @@ class zabbix_api:
                           "output": "extend",
                           "filter":{"alias":userName} 
                           },
-                "auth": self.user_login(),
+                "auth":self.authID,
                 "id": 1
                 })
         request = urllib2.Request(self.url,data) 
@@ -1477,7 +1482,7 @@ class zabbix_api:
                                             }
                                                 ]
                                        },
-                           "auth": self.user_login(), 
+                           "auth":self.authID, 
                            "id":1                   
         }) 
         request = urllib2.Request(self.url, data) 
@@ -1501,7 +1506,7 @@ class zabbix_api:
                           "output": "extend",
                           "filter":{"name":usergroupName} 
                           },
-                "auth": self.user_login(),
+                "auth":self.authID,
                 "id": 1
                 })
         request = urllib2.Request(self.url,data) 
@@ -1549,7 +1554,7 @@ class zabbix_api:
                                          "id":hostgroupID
                                       }, 
                                      }, 
-                           "auth": self.user_login(), 
+                           "auth":self.authID, 
                            "id":1                   
         }) 
         request = urllib2.Request(self.url, data) 
@@ -1578,7 +1583,7 @@ class zabbix_api:
                 "jsonrpc": "2.0",
                 "method": "usergroup.delete",
                 "params": usergroup_list,
-                "auth": self.user_login(),
+                "auth":self.authID,
                 "id": 1
                 })
         request = urllib2.Request(self.url,data) 
@@ -1606,7 +1611,7 @@ class zabbix_api:
                           "output": "extend",
                           "filter":{"description":mediatypeName} 
                           },
-                "auth": self.user_login(),
+                "auth":self.authID,
                 "id": 1
                 })
         request = urllib2.Request(self.url,data) 
@@ -1657,7 +1662,7 @@ class zabbix_api:
                                  "exec_path": mediatypePath,
                                  "exec_params":"{ALERT.SENDTO}\n{ALERT.SUBJECT}\n{ALERT.MESSAGE}\n"
                                                },
-                           "auth": self.user_login(), 
+                           "auth":self.authID, 
                            "id":1                   
         }) 
         request = urllib2.Request(self.url, data) 
@@ -1686,7 +1691,7 @@ class zabbix_api:
                 "jsonrpc": "2.0",
                 "method": "mediatype.delete",
                 "params": mediatype_list,
-                "auth": self.user_login(),
+                "auth": self.authID,
                 "id": 1
                 })
         request = urllib2.Request(self.url,data) 
@@ -1710,7 +1715,7 @@ class zabbix_api:
                           "output": "extend",
                           "filter":{"name":druleName} 
                           },
-                "auth": self.user_login(),
+                "auth":self.authID,
                 "id": 1
                 })
         request = urllib2.Request(self.url,data) 
@@ -1761,7 +1766,7 @@ class zabbix_api:
                                             }
                                           ]
                                       },
-                           "auth": self.user_login(), 
+                           "auth":self.authID, 
                            "id":1                   
         }) 
         request = urllib2.Request(self.url, data) 
@@ -1793,7 +1798,7 @@ class zabbix_api:
                               "name":actionName,
                           } 
                           },
-                "auth": self.user_login(),
+                "auth":self.authID,
                 "id": 1
                 })
         request = urllib2.Request(self.url,data) 
@@ -1895,7 +1900,7 @@ class zabbix_api:
                                     }
                                 ]
                            },
-                           "auth": self.user_login(), 
+                           "auth":self.authID, 
                            "id":1                   
         }) 
         request = urllib2.Request(self.url, data) 
@@ -2008,7 +2013,7 @@ class zabbix_api:
                     }
                 ]
             },
-            "auth": self.user_login(), 
+            "auth":self.authID, 
             "id": 1
         })
         request = urllib2.Request(self.url, data) 
@@ -2100,7 +2105,7 @@ class zabbix_api:
                                     }
                                 ]
                            },
-                           "auth": self.user_login(), 
+                           "auth":self.authID, 
                            "id":1                   
         }) 
         request = urllib2.Request(self.url, data) 
@@ -2166,7 +2171,7 @@ class zabbix_api:
                                "selectItems":["key_","prevvalue","units","value_type"],
                                "expandDescription":"1"
                            }, 
-                           "auth":self.user_login(), 
+                           "auth":self.authID, 
                            "id":1, 
         }) 
          
@@ -2207,7 +2212,7 @@ class zabbix_api:
                                   "value": 1
                                },
                            }, 
-                           "auth":self.user_login(), 
+                           "auth":self.authID, 
                            "id":1, 
         }) 
          
@@ -2246,7 +2251,7 @@ class zabbix_api:
                                          "time_till":time_till,
                                          "value":"1",
                                          }, 
-                               "auth":self.user_login(), 
+                               "auth":self.authID, 
                                "id":1, 
                                }) 
         else:
@@ -2259,7 +2264,7 @@ class zabbix_api:
                                          "time_from":time_from,
                                          "time_till":time_till,
                                          }, 
-                               "auth":self.user_login(), 
+                               "auth":self.authID, 
                                "id":1, 
                                }) 
          
@@ -2537,6 +2542,8 @@ if __name__ == "__main__":
 
     #######################################################################################################
     if len(sys.argv)==1:
+        #from pydoc import render_doc
+        #print(render_doc(zabbix_api))
         print parser.print_help()
     else:
         args=parser.parse_args()

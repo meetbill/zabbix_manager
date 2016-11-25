@@ -36,6 +36,7 @@ Daily we need to export the report, use zabbix manager can export xls file using
 ## version
 ----
 * V1.1
+    * v1.1.7，2016-11-25 优化程序
     * v1.1.6，2016-11-08 add profile,可以通过 profile 参数选择配置文件中不同的 section
     * v1.1.5，2016-10-24 add report_available2 可以对特定 item 进行输出，除报表项外，其他函数统一输出函数
     * v1.1.4，2016-10-24 add issues,获取最近问题
