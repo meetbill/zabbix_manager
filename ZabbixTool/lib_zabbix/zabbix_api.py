@@ -1,6 +1,7 @@
 #!/usr/bin/python 
 #coding:utf-8 
-__version__ = "1.1.7"
+from __future__ import print_function
+__version__ = "1.1.7_1"
  
 import json 
 import urllib2 
@@ -27,16 +28,16 @@ import argparse
 reload(sys)
 sys.setdefaultencoding("utf-8")
 def err_msg(msg):
-    print "\033[41;37m[Error]: %s \033[0m"%msg
+    print("\033[41;37m[Error]: %s \033[0m"%msg)
     exit()
 
   
 def info_msg(msg):
-    print "\033[42;37m[Info]: %s \033[0m"%msg
+    print("\033[42;37m[Info]: %s \033[0m"%msg)
 
   
 def warn_msg(msg):
-    print "\033[43;37m[Warning]: %s \033[0m"%msg
+    print("\033[43;37m[Warning]: %s \033[0m"%msg)
 
 class zabbix_api: 
     def __init__(self,terminal_table=False,debug=False,output=True,output_sort=False,sort_reverse=False,profile="zabbixserver"): 
@@ -53,7 +54,7 @@ class zabbix_api:
             self.user = config.get(profile, "user")
             self.password = config.get(profile, "password")
         else:
-            print "the config file is not exist"
+            print("the config file is not exist")
             exit(1)
 
         self.url = 'http://%s:%s/api_jsonrpc.php' % (self.server,self.port) #修改URL
@@ -80,7 +81,7 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "\033[041m 用户认证失败，请检查 !\033[0m", e
+            print("\033[041m 用户认证失败，请检查 !\033[0m", e)
             exit(1)
         else: 
             response = json.loads(result.read()) 
@@ -103,7 +104,7 @@ class zabbix_api:
                 "method": "host.get",
                 "params": {
                           "output": ["hostid","host","name","status","available"],
-                          "filter":{"host":hostName},
+                          "filter":{"name":hostName},
                           "selectInterfaces":["ip"]
                           },
                 "auth": self.authID,
@@ -116,11 +117,11 @@ class zabbix_api:
             result = urllib2.urlopen(request) 
         except URLError as e: 
             if hasattr(e, 'reason'): 
-                print 'We failed to reach a server.' 
-                print 'Reason: ', e.reason 
+                print('We failed to reach a server.' )
+                print('Reason: ', e.reason) 
             elif hasattr(e, 'code'): 
-                print 'The server could not fulfill the request.' 
-                print 'Error code: ', e.code 
+                print('The server could not fulfill the request.')
+                print('Error code: ', e.code)
         else: 
             response = json.loads(result.read()) 
             result.close() 
@@ -132,9 +133,10 @@ class zabbix_api:
                 status={"0":"OK","1":"Disabled"}
                 available={"0":"Unknown","1":Color('{autobggreen}available{/autobggreen}'),"2":Color('{autobgred}Unavailable{/autobgred}')}
                 if len(hostName)==0:
-                    output.append([host['hostid'],host['host'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
+                    output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
                 else:
-                    output.append([host['hostid'],host['host'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
+                    output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
+                    self.generate_output(output)
                     return host['hostid']
             self.generate_output(output)
             return 0
@@ -194,11 +196,11 @@ class zabbix_api:
             result = urllib2.urlopen(request) 
         except URLError as e: 
             if hasattr(e, 'reason'): 
-                print 'We failed to reach a server.' 
-                print 'Reason: ', e.reason 
+                print('We failed to reach a server.') 
+                print('Reason: ', e.reason)
             elif hasattr(e, 'code'): 
-                print 'The server could not fulfill the request.' 
-                print 'Error code: ', e.code 
+                print('The server could not fulfill the request.')
+                print('Error code: ', e.code)
         else: 
             response = json.loads(result.read()) 
             result.close() 
@@ -209,7 +211,7 @@ class zabbix_api:
             return all_host_list
     def host_create(self, hostip,hostname,hostgroupName, templateName): 
         if self.host_get(hostname):
-            print "\033[041m该主机已经添加!\033[0m" 
+            print("\033[041m该主机已经添加!\033[0m")
             sys.exit(1)
 
         group_list=[]
@@ -251,12 +253,12 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e)
         else: 
             response = json.loads(result.read()) 
-            print response
+            print(response)
             result.close() 
-            print "添加主机 : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (hostip, response['result']['hostids']) 
+            print("添加主机 : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (hostip, response['result']['hostids']))
     def host_disable(self,hostname):
         data=json.dumps({
             "jsonrpc": "2.0",
@@ -274,15 +276,14 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request)
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e)
         else: 
             response = json.loads(result.read()) 
             result.close()
-            print '----主机现在状态------------'
-        print self.host_get(hostname)
+            print('----主机现在状态------------')
+        print(self.host_get(hostname))
     def host_delete(self,hostnames):
         hostid_list=[]
-        #print type(hostid)
         for i in hostnames.split(','):
             hostid = self.host_get(i)
             hostid_list.append(hostid)      
@@ -300,13 +301,11 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except Exception,e: 
-            print  e
+            print(e)
         else: 
             response = json.loads(result.read()) 
-            #print response['result']
-
             result.close() 
-            print "主机 \033[041m %s\033[0m  已经删除 !"%hostnames
+            print("主机 \033[041m %s\033[0m  已经删除 !"%hostnames)
     # hostgroup
     def hostgroup_get(self, hostgroupName=''): 
         data = json.dumps({ 
@@ -329,7 +328,7 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e )
         else: 
             response = json.loads(result.read()) 
             result.close() 
@@ -365,23 +364,21 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e )
         else: 
-            #print result.read()
             response = json.loads(result.read()) 
             result.close() 
             if len(response['result']) == 0:
                 return 0
             for group in response['result']:
                 if  len(groupid)==0:
-                    print "hostgroup:  \033[31m%s\033[0m \tgroupid : %s" %(group['name'],group['groupid'])
+                    print("hostgroup:  \033[31m%s\033[0m \tgroupid : %s" %(group['name'],group['groupid']))
             else:
-                #print "hostgroup:  \033[31m%s\033[0m\tgroupid : %s" %(group['name'],group['groupid'])
                 return group['name'] 
     def hostgroup_create(self,hostgroupName):
 
         if self.hostgroup_get(hostgroupName):
-            print "hostgroup  \033[42m%s\033[0m is exist !"%hostgroupName
+            print("hostgroup  \033[42m%s\033[0m is exist !"%hostgroupName)
             sys.exit(1)
         data = json.dumps({
                           "jsonrpc": "2.0",
@@ -400,11 +397,11 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request)
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e )
         else: 
             response = json.loads(result.read()) 
             result.close()
-            print "\033[042m 添加主机组:%s\033[0m  hostgroupID : %s"%(hostgroupName,response['result']['groupids'])
+            print("\033[042m 添加主机组:%s\033[0m  hostgroupID : %s"%(hostgroupName,response['result']['groupids']))
     def item_get(self, host_ID='',itemName=''): 
         # item
         ##
@@ -417,7 +414,7 @@ class zabbix_api:
         # list_format
         # [item['itemid'],item['name'],item['key_'],item['delay'],item['value_type']]
         if  len(host_ID)==0:
-            print "ERR- host_ID is null"
+            print("ERR- host_ID is null")
             return 0
 
         data = json.dumps({ 
@@ -438,7 +435,7 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e)
         else: 
             response = json.loads(result.read()) 
             result.close() 
@@ -493,7 +490,7 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e)
         else: 
             response = json.loads(result.read()) 
             result.close() 
@@ -538,7 +535,7 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e)
         else: 
             response = json.loads(result.read()) 
             result.close() 
@@ -548,14 +545,13 @@ class zabbix_api:
                 self.logger.debug(debug_info)
                 return 0.0
             for history_info in response['result']:
-                print item_ID,history_info['value']
+                print(item_ID,history_info['value'])
     def _get_select_condition_info(self,select_condition): 
         output = ""
         if select_condition["hostgroupID"]:
             flag = 1
             for i in select_condition["hostgroupID"].split(','):
                 hostgroup_name = self._hostgroup_get_name(i)
-                #print hostgroup_name
                 if flag:
                     flag = 0
                     output = hostgroup_name + output
@@ -656,7 +652,7 @@ class zabbix_api:
                 reverse = self.reverse
                 report_output = sorted(report_output,key=lambda x:float(x[self.output_sort-1]),reverse=reverse)
             else:
-                print "Does not support this column sorting"
+                print("Does not support this column sorting")
         ################################################################output
         if self.terminal_table:
             table_show=[]
@@ -667,11 +663,11 @@ class zabbix_api:
             table.title = itemName
             print(table.table)
         else:
-            print "hostid",'\t',"name",'\t',"itemName",'\t',"min",'\t',"max","avg"
+            print("hostid",'\t',"name",'\t',"itemName",'\t',"min",'\t',"max","avg")
             for report_item in report_output:
                 for report_item_i in report_item:
-                    print report_item_i,'\t',
-                print 
+                    print(report_item_i,'\t',end=" ")
+                print() 
         if export_xls["xls"] == "ON":
             xlswriter = XLSWriter.XLSWriter(export_xls["xls_name"])
             # title
@@ -721,10 +717,9 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e )
         else: 
             response = json.loads(result.read()) 
-            #print response
             result.close() 
             if len(response['result']) == 0:
                 debug_info=str([item_ID,time_from,time_till,"####not have trend_data"])
@@ -848,7 +843,7 @@ class zabbix_api:
                 reverse = self.reverse
                 report_output = sorted(report_output,key=lambda x:float(x[self.output_sort-1]),reverse=reverse)
             else:
-                print "Does not support this column sorting"
+                print("Does not support this column sorting")
         ################################################################output
         if self.terminal_table:
             table_show=[]
@@ -859,11 +854,11 @@ class zabbix_api:
             table.title = itemName
             print(table.table)
         else:
-            print "hostid",'\t',u"资源类型",'\t',"itemName",'\t',u"期望值(%)",'\t',u"平均值(%)",'\t',u"差值(%)"
+            print("hostid",'\t',u"资源类型",'\t',"itemName",'\t',u"期望值(%)",'\t',u"平均值(%)",'\t',u"差值(%)")
             for report_item in report_output:
                 for report_item_i in report_item:
-                    print report_item_i,'\t',
-                print 
+                    print(report_item_i,'\t',end=" ")
+                print() 
         if export_xls["xls"] == "ON":
             xlswriter = XLSWriter.XLSWriter(export_xls["xls_name"])
             # title
@@ -925,21 +920,18 @@ class zabbix_api:
             xls_range = u"ALL"
             host_list = self._host_get()
         for host_info in host_list: 
-            #print "####",host_info[0]
             # host_info[1]是host_name,host_info[2]是name
             hostname = host_info[2]
             hostip = host_info[3]
             triggerid_all_list = self._triggers_get(host_info[0])
             if triggerid_all_list == 0:
                 continue
-            #print time_from,time_till
             for triggerid_sub_list in triggerid_all_list:
                 triggerid=triggerid_sub_list[0]
                 trigger_name=triggerid_sub_list[1]
                 trigger_key = triggerid_sub_list[2]
                 trigger_prevvalue = triggerid_sub_list[3]
                 trigger_units = triggerid_sub_list[4]
-                #print trigger_key
                 if itemkey_list:
                     if trigger_key not in itemkey_list:
                         continue
@@ -955,15 +947,6 @@ class zabbix_api:
                         event_diff = "%0.4f%%"%event_result
                         event_value = "%0.4f%%"%(100.0 - event_result)
                         report_output.append([hostname,hostip,trigger_name,event_diff,event_value,trigger_prevvalue+trigger_units])
-        #if self.output_sort:
-        #    # 排序，如果是false，是升序
-        #    # 如果是true，是降序
-        #    if self.output_sort in [3,4]:
-        #        reverse = self.reverse
-        #        report_output = sorted(report_output,key=lambda x:float(x[self.output_sort-1]),reverse=reverse)
-        #    else:
-        #        print "Does not support this column sorting"
-        ################################################################output
         if self.terminal_table:
             table_show=[]
             table_show.append(["hostname","ip","Name","Problems","OK","prevvalue"])
@@ -973,11 +956,11 @@ class zabbix_api:
             table.title = "Availability report"
             print(table.table)
         else:
-            print "hostname",'\t','ip','\t'"Name",'\t',"Problems",'\t',"OK",'\t',"prevvalue"
+            print("hostname",'\t','ip','\t'"Name",'\t',"Problems",'\t',"OK",'\t',"prevvalue")
             for report_item in report_output:
                 for report_item_i in report_item:
-                    print report_item_i,'\t',
-                print 
+                    print(report_item_i,'\t',end=" ")
+                print() 
         if export_xls["xls"] == "ON":
             xlswriter = XLSWriter.XLSWriter(export_xls["xls_name"])
             # title
@@ -1002,7 +985,6 @@ class zabbix_api:
     # @return 
     def report_flow(self,date_from,date_till,export_xls,hosts_file="./switch"): 
         host_all_info = config.read_config(hosts_file)
-        #print host_all_info
         dateFormat = "%Y-%m-%d %H:%M:%S"
         report_output=[]
         try:
@@ -1060,12 +1042,11 @@ class zabbix_api:
                 in_min = float('%0.4f'%(in_min /1000000.0))
                 in_max = float('%0.4f'%(in_max /1000000.0))
                 in_avg = float('%0.4f'%(in_avg /1000000.0))
-            #print in_max,in_avg,in_min
                 rate_in_min = float('%0.4f'% (in_min/speed * 100))
                 rate_in_max = float('%0.4f'% (in_max/speed * 100))
                 rate_in_avg = float('%0.4f'% (in_avg/speed * 100))
             else:
-                print "no item[%s]"%item_ethernet_port_in
+                print("no item[%s]"%item_ethernet_port_in)
                 in_min = -1
                 in_max = -1
                 in_avg = -1
@@ -1083,7 +1064,7 @@ class zabbix_api:
                 rate_out_max = float('%0.4f'%(out_max/speed * 100))
                 rate_out_avg = float('%0.4f'%(out_avg/speed * 100))
             else:
-                print "no item[%s]"%item_ethernet_port_out
+                print("no item[%s]"%item_ethernet_port_out)
                 out_min = -1
                 out_max = -1
                 out_avg = -1
@@ -1145,18 +1126,8 @@ class zabbix_api:
                 reverse = self.reverse
                 report_output = sorted(report_output,key=lambda x:float(x[self.output_sort-1]),reverse=reverse)
             else:
-                print "Does not support this column sorting"
-        ################################################################output
-        #if self.terminal_table:
-        #    table_show=[]
-        #    table_show.append([u"hostid",u"资源类型",u"itemName",u"期望值(%)",u"平均值(%)",u"差值(%)"])
-        #    for report_item in report_output:
-        #        table_show.append(report_item)
-        #    table=SingleTable(table_show)
-        #    table.title = itemName
-        #    print(table.table)
-        #else:
-        print \
+                print("Does not support this column sorting")
+        print( \
             "nu",\
             "description",\
             "hostname|",\
@@ -1174,11 +1145,11 @@ class zabbix_api:
             "rate_out_max|",\
             "rate_out_avg|",\
             "rate_out_min|",\
-            "bandwidth"
+            "bandwidth")
         for report_item in report_output:
             for report_item_i in report_item[:-1]:
-                print report_item_i,
-            print 
+                print(report_item_i,end="")
+            print()
         if export_xls["xls"] == "ON":
             xlswriter = XLSWriter.XLSWriter(export_xls["xls_name"])
             # title
@@ -1211,7 +1182,6 @@ class zabbix_api:
                 "auth":self.authID,
                 "id": 1
                 })
-        # print data
         request = urllib2.Request(self.url,data) 
         for key in self.header: 
             request.add_header(key, self.header[key]) 
@@ -1219,16 +1189,14 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except Exception,e: 
-            print  e
+            print(e)
         else: 
             response = json.loads(result.read()) 
             if len(response['result']) == 0:
-                print "no alert"
+                print("no alert")
                 return 0
             for alert in response['result']:      
-                print alert['alertid'],alert['status']
-            #print response['result']
-            #print response['result']
+                print(alert['alertid'],alert['status'])
             result.close() 
     ##
     # @brief trend_get 
@@ -1271,7 +1239,7 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e )
         else: 
             response = json.loads(result.read()) 
             result.close() 
@@ -1314,7 +1282,7 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e )
         else: 
             response = json.loads(result.read()) 
             result.close() 
@@ -1403,13 +1371,11 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e )
         else: 
-            #print result.read()
             response = json.loads(result.read()) 
             result.close() 
-            print response['result']
-            #print "add user : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (usergroupName, response['result']['userids'][0]) 
+            print(response['result'])
     # user
     ##
     # @brief user_get 
@@ -1435,11 +1401,11 @@ class zabbix_api:
             result = urllib2.urlopen(request) 
         except URLError as e: 
             if hasattr(e, 'reason'): 
-                print 'We failed to reach a server.' 
-                print 'Reason: ', e.reason 
+                print('We failed to reach a server.' )
+                print( 'Reason: ', e.reason )
             elif hasattr(e, 'code'): 
-                print 'The server could not fulfill the request.' 
-                print 'Error code: ', e.code 
+                print( 'The server could not fulfill the request.' )
+                print( 'Error code: ', e.code )
         else: 
             response = json.loads(result.read()) 
             result.close() 
@@ -1456,7 +1422,7 @@ class zabbix_api:
             self.generate_output(output)
     def user_create(self, userName,userPassword,usergroupName,mediaName,email): 
         if self.user_get(userName):
-            print "\033[041mthis userName is exists\033[0m" 
+            print("\033[041mthis userName is exists\033[0m" )
             sys.exit(1)
 
         usergroupID=self.usergroup_get(usergroupName)
@@ -1492,12 +1458,11 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e)
         else: 
-            #print result.read()
             response = json.loads(result.read()) 
             result.close() 
-            print "add user : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (usergroupName, response['result']['userids'][0]) 
+            print("add user : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (usergroupName, response['result']['userids'][0]))
     def usergroup_get(self,usergroupName=''): 
         data=json.dumps({
                 "jsonrpc": "2.0",
@@ -1516,11 +1481,11 @@ class zabbix_api:
             result = urllib2.urlopen(request) 
         except URLError as e: 
             if hasattr(e, 'reason'): 
-                print 'We failed to reach a server.' 
-                print 'Reason: ', e.reason 
+                print('We failed to reach a server.' )
+                print('Reason: ', e.reason )
             elif hasattr(e, 'code'): 
-                print 'The server could not fulfill the request.' 
-                print 'Error code: ', e.code 
+                print( 'The server could not fulfill the request.' )
+                print( 'Error code: ', e.code )
         else: 
             response = json.loads(result.read()) 
             result.close() 
@@ -1534,13 +1499,12 @@ class zabbix_api:
                 if len(usergroupName)==0:
                     output.append([user_group['usrgrpid'],user_group['name'],user_group['gui_access'],user_group['users_status']])
                 else:
-                    #print user_group['usrgrpid'],user_group['name'],user_group['gui_access'],user_group['users_status']
                     return user_group['usrgrpid']
             self.generate_output(output)
             return 0
     def usergroup_create(self, usergroupName,hostgroupName): 
         if self.usergroup_get(usergroupName):
-            print "\033[041mthis usergroupName is exists\033[0m" 
+            print("\033[041mthis usergroupName is exists\033[0m")
             sys.exit(1)
 
         hostgroupID=self.hostgroup_get(hostgroupName)
@@ -1564,12 +1528,11 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e)
         else: 
-            #print result.read()
             response = json.loads(result.read()) 
             result.close() 
-            print "add usergroup : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (usergroupName, response['result']['usrgrpids'][0]) 
+            print("add usergroup : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (usergroupName, response['result']['usrgrpids'][0]) )
     def usergroup_del(self,usergroupName):
         usergroup_list=[]
         for i in usergroupName.split(','):
@@ -1577,7 +1540,7 @@ class zabbix_api:
             if usergroupID:
                 usergroup_list.append(usergroupID)      
         if not len(usergroup_list):
-            print "usergroup \033[041m %s\033[0m  is not exists !"% usergroupName 
+            print("usergroup \033[041m %s\033[0m  is not exists !"% usergroupName )
             exit(1)
         data=json.dumps({
                 "jsonrpc": "2.0",
@@ -1593,11 +1556,11 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except Exception,e: 
-            print  e
+            print(e)
         else: 
             response = json.loads(result.read()) 
             result.close() 
-            print "usergroup \033[042m %s\033[0m  delete OK !"% usergroupName 
+            print("usergroup \033[042m %s\033[0m  delete OK !"% usergroupName )
     # mediatype
     ##
     # @brief mediatype_get 
@@ -1621,11 +1584,11 @@ class zabbix_api:
             result = urllib2.urlopen(request) 
         except URLError as e: 
             if hasattr(e, 'reason'): 
-                print 'We failed to reach a server.' 
-                print 'Reason: ', e.reason 
+                print('We failed to reach a server.')
+                print('Reason: ', e.reason)
             elif hasattr(e, 'code'): 
-                print 'The server could not fulfill the request.' 
-                print 'Error code: ', e.code 
+                print('The server could not fulfill the request.' )
+                print('Error code: ', e.code )
         else: 
             response = json.loads(result.read()) 
             result.close() 
@@ -1650,7 +1613,7 @@ class zabbix_api:
     # 3 - Jabber; 
     def mediatype_create(self, mediatypeName,mediatypePath): 
         if self.mediatype_get(mediatypeName):
-            print "\033[041mthis mediatypeName is exists\033[0m" 
+            print("\033[041mthis mediatypeName is exists\033[0m" )
             sys.exit(1)
 
         data = json.dumps({ 
@@ -1672,12 +1635,11 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e)
         else: 
-            #print result.read()
             response = json.loads(result.read()) 
             result.close() 
-            print "add mediatype : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (mediatypeName, response['result']['mediatypeids'][0]) 
+            print("add mediatype : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (mediatypeName, response['result']['mediatypeids'][0]))
     def mediatype_del(self,mediatypeName):
         mediatype_list=[]
         for i in mediatypeName.split(','):
@@ -1685,7 +1647,7 @@ class zabbix_api:
             if mediatypeID:
                 mediatype_list.append(mediatypeID)      
         if not len(mediatype_list):
-            print "mediatype \033[041m %s\033[0m  is not exists !"% mediatypeName 
+            print("mediatype \033[041m %s\033[0m  is not exists !"% mediatypeName)
             exit(1)
         data=json.dumps({
                 "jsonrpc": "2.0",
@@ -1701,11 +1663,11 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except Exception,e: 
-            print  e
+            print(e)
         else: 
             response = json.loads(result.read()) 
             result.close() 
-            print "mediatype \033[042m %s\033[0m  delete OK !"% mediatypeName 
+            print("mediatype \033[042m %s\033[0m  delete OK !"% mediatypeName)
     # drule(discoveryRules)
     def drule_get(self,druleName=''): 
         data=json.dumps({
@@ -1725,11 +1687,11 @@ class zabbix_api:
             result = urllib2.urlopen(request) 
         except URLError as e: 
             if hasattr(e, 'reason'): 
-                print 'We failed to reach a server.' 
-                print 'Reason: ', e.reason 
+                print('We failed to reach a server.')
+                print('Reason: ', e.reason)
             elif hasattr(e, 'code'): 
-                print 'The server could not fulfill the request.' 
-                print 'Error code: ', e.code 
+                print('The server could not fulfill the request.' )
+                print('Error code: ', e.code )
         else: 
             response = json.loads(result.read()) 
             result.close() 
@@ -1748,7 +1710,7 @@ class zabbix_api:
             return 0
     def drule_create(self, druleName,iprange): 
         if self.drule_get(druleName):
-            print "\033[041mthis druleName is exists\033[0m" 
+            print("\033[041mthis druleName is exists\033[0m" )
             sys.exit(1)
 
         data = json.dumps({ 
@@ -1776,13 +1738,11 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e )
         else: 
-            #print result.read()
             response = json.loads(result.read()) 
             result.close() 
-            #print response
-            print "add drule : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (druleName, response['result']['druleids'][0]) 
+            print("add drule : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (druleName, response['result']['druleids'][0]))
     # action
     # eventsource 0 triggers
     # eventsource 1 discovery
@@ -1808,11 +1768,11 @@ class zabbix_api:
             result = urllib2.urlopen(request) 
         except URLError as e: 
             if hasattr(e, 'reason'): 
-                print 'We failed to reach a server.' 
-                print 'Reason: ', e.reason 
+                print('We failed to reach a server.')
+                print('Reason: ', e.reason)
             elif hasattr(e, 'code'): 
-                print 'The server could not fulfill the request.' 
-                print 'Error code: ', e.code 
+                print('The server could not fulfill the request.')
+                print('Error code: ', e.code )
         else: 
             response = json.loads(result.read()) 
             result.close() 
@@ -1838,7 +1798,7 @@ class zabbix_api:
             output_print["status"]="ERR"
             output_print["output"]="this druleName is exists"
             if self.output:
-                print json.dumps(output_print)
+                print(json.dumps(output_print))
             return json.dumps(output_print)
 
         hostgroupID = self.hostgroup_get(hostgroupName)
@@ -1847,7 +1807,7 @@ class zabbix_api:
             output_print["status"]="ERR"
             output_print["output"]="this hostgroup is not exists"
             if self.output:
-                print json.dumps(output_print)
+                print(json.dumps(output_print))
             return json.dumps(output_print)
         templateName = "Template OS Linux"
         templateID=self.template_get(templateName)
@@ -1910,9 +1870,8 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e)
         else: 
-            #print result.read()
             response = json.loads(result.read()) 
             result.close() 
 
@@ -1920,7 +1879,7 @@ class zabbix_api:
             output_print["status"]="OK"
             output_print["output"]="add action:%s id:%s" %(actionName, response['result']['actionids'][0]) 
             if self.output:
-                print json.dumps(output_print)
+                print(json.dumps(output_print))
             return json.dumps(output_print)
     def action_trigger_create(self, actionName): 
         if self.action_get(actionName):
@@ -1928,7 +1887,7 @@ class zabbix_api:
             output_print["status"]="ERR"
             output_print["output"]="this druleName is exists"
             if self.output:
-                print json.dumps(output_print)
+                print(json.dumps(output_print))
             return json.dumps(output_print)
 
         #data = json.dumps({ 
@@ -2023,9 +1982,8 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e )
         else: 
-            #print result.read()
             response = json.loads(result.read()) 
             result.close() 
 
@@ -2033,16 +1991,16 @@ class zabbix_api:
             output_print["status"]="OK"
             output_print["output"]="add action:%s id:%s" %(actionName, response['result']['actionids'][0]) 
             if self.output:
-                print json.dumps(output_print)
+                print(json.dumps(output_print))
             return json.dumps(output_print)
     def action_discovery_create(self, actionName,hostgroupName): 
         if self.action_get(actionName):
-            print "\033[041mthis druleName is exists\033[0m" 
+            print("\033[041mthis druleName is exists\033[0m")
             sys.exit(1)
 
         hostgroupID = self.hostgroup_get(hostgroupName)
         if not hostgroupID:
-            print "this hostgroup is not exists"
+            print("this hostgroup is not exists")
             exit(1)
         templateName = "Template OS Linux"
         templateID=self.template_get(templateName)
@@ -2115,12 +2073,11 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e)
         else: 
-            #print result.read()
             response = json.loads(result.read()) 
             result.close() 
-            print "add action : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" %(actionName, response['result']['actionids'][0]) 
+            print("add action : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" %(actionName, response['result']['actionids'][0]))
     def mysql_quota(self): 
         # 设置为调用的函数不输出
         self.output = False
@@ -2149,13 +2106,13 @@ class zabbix_api:
         sum_trends_quota = 365 * sum_item_num * 24 * 128
         sum_event_quota = 365 * sum_item_num * 24 * 130 * 5
         mysql_quota = (sum_history_quota + sum_trends_quota + sum_event_quota)/1000000000.0
-        print "item_num:%d Use:%fG"%(sum_item_num,mysql_quota)
+        print("item_num:%d Use:%fG"%(sum_item_num,mysql_quota))
         return 0
     
     #triggers
     def _triggers_get(self, host_ID=''): 
         if  len(host_ID)==0:
-            print "ERR- host_ID is null"
+            print("ERR- host_ID is null")
             return 0
 
         all_trigger_list=[]
@@ -2182,14 +2139,13 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e )
         else: 
             response = json.loads(result.read()) 
             result.close() 
             if len(response['result']) == 0:
                 return 0
             for trigger in response['result']:
-                #print trigger 
                 all_trigger_list.append((trigger["triggerid"],trigger["description"],trigger["items"][0]["key_"],trigger["items"][0]["prevvalue"],trigger["items"][0]["units"]))
             return all_trigger_list
     def triggers_get(self): 
@@ -2223,12 +2179,12 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e)
         else: 
             response = json.loads(result.read()) 
             result.close() 
             if len(response['result']) == 0:
-                print ":) no issues"
+                print(":) no issues")
                 return 0
             output = []
             output[:] = []
@@ -2275,7 +2231,7 @@ class zabbix_api:
         try: 
             result = urllib2.urlopen(request) 
         except URLError as e: 
-            print "Error as ", e 
+            print("Error as ", e )
         else: 
             response = json.loads(result.read()) 
             result.close() 
@@ -2307,7 +2263,6 @@ class zabbix_api:
                             time_diff = int(response["result"][i+1]["clock"]) - int(response["result"][i]["clock"])
                             time_event_sum = time_event_sum + time_diff
                     event_diff = float('%0.4f'%(time_event_sum * 100 / float(time_range)))
-                    #print event_diff
                     return event_diff
                 else:
                     time_from_record = time_from
@@ -2333,12 +2288,12 @@ class zabbix_api:
             else:
                 for output in output_list:
                     for output_sub in output:
-                        print output_sub,"\t",
-                    print
-            print "sum: ",len(output_list[1:])
+                        print("[%s]"%output_sub,end=" ")
+                    print()
+            print("sum: ",len(output_list[1:]))
             
 if __name__ == "__main__":
-    print __version__
+    print( __version__)
     parser=argparse.ArgumentParser(description='zabbix  api ',usage='%(prog)s [options]')
    
     #####################################
@@ -2544,7 +2499,7 @@ if __name__ == "__main__":
     if len(sys.argv)==1:
         #from pydoc import render_doc
         #print(render_doc(zabbix_api))
-        print parser.print_help()
+        print(parser.print_help())
     else:
         args=parser.parse_args()
         
@@ -2581,9 +2536,9 @@ if __name__ == "__main__":
                 if os.path.exists(zabbix_config):
                     config = ConfigParser.ConfigParser()
                     config.read("zabbix_config.ini")
-                    print config.sections()
+                    print(config.sections())
                 else:
-                    print "the zabbix_config.ini is not found"
+                    print("the zabbix_config.ini is not found")
                 sys.exit()
         else:
             profile = "zabbixserver"
@@ -2610,7 +2565,7 @@ if __name__ == "__main__":
                 export_xls["title"] = 'ON'
                 export_xls["title_name"]=unicode(args.title[0],"utf-8")
             else:
-                print "the title params invalid"
+                print("the title params invalid")
         if args.switch_file:
             hosts_file=args.switch_file[0]
         else:
@@ -2720,7 +2675,7 @@ if __name__ == "__main__":
                 try:
                     zabbix.configuration_import(template)
                 except ZabbixAPIException as e:
-                    print e
+                    print(e)
         ############
         # user
         ############
