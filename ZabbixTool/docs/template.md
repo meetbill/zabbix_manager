@@ -15,7 +15,7 @@
 
 ```bash
 #!/bin/bash
-python ./lib_zabbix/zabbix_api.py --template_import ./scripts/template/ceshi_templates.xml
+python ./lib_zabbix/zabbix_api.py  configuration_import ./scripts/template/ceshi_templates.xml
 ``` 
 直接执行在本目录执行 
 

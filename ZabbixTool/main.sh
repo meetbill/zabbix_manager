@@ -1,7 +1,7 @@
 #########################################################################
 # File Name: main.sh
-# Author: wangbin
-# mail: 772384788@qq.com
+# Author: 遇见王斌
+# mail: wangbin139967@163.com
 # Created Time: Tue 28 Oct 2014 05:09:26 AM CST
 #########################################################################
 #!/bin/bash
@@ -10,20 +10,23 @@
 #            M A I N             #
 #================================#
 
+VERSION=1.0.2
+TIME="2016-10-21"
 TOOL_PATH=$(cd `dirname $0`; pwd)
 export TOOL_PATH
-MENUPATH=${TOOL_PATH}/Config            # The default menu file path
+cd  ${TOOL_PATH}
+MENUPATH=${TOOL_PATH}/sh_menu/Config            # The default menu file path
 MENUTYPE=menu                           # Menu file name suffix
 MENUFILE=$MENUPATH/TOOL.$MENUTYPE       # The default menu file
 MENUCHAR=%                              # The default menu file separator
-
-LIBPATH=${TOOL_PATH}/Mylib
-
+FUNTION_DIR=sh_menu/Function
+FUNTION_DIR_S=${TOOL_PATH}/${FUNTION_DIR}
 menu=0 # The first few menu
 tree=0 # The default does not display the menu tree
 verbose=0 # The default menu tree diagram does not display with the menu information
 
 
+#{{{Enter
 Enter()
 {
 	echo
@@ -31,7 +34,8 @@ Enter()
 	read -s Enter
 	echo
 }
-
+#}}}
+#{{{Chkfile
 Chkfile()
 {
 	if [ ! -f $1 ]
@@ -40,7 +44,8 @@ Chkfile()
         exit 1
 	fi
 }
-
+#}}}
+#{{{Chkinput
 Chkinput()
 {
 	if [ "x$2" = "xa" -o "x$2" = "xx" -o "x$2" = "xh" -o "x$2" = "xb" ]
@@ -60,7 +65,53 @@ Chkinput()
 		return 2
 	fi
 }
+#}}}
+#{{{Create_file
+Create_file()
+{
+    > ${MENUFILE}
+    if [[ ! -d ${FUNTION_DIR} ]]
+    then
+        echo "${FUNTION_DIR} not exist"
+        exit
+    else
+        # 清理下菜单配置目录
+        [[ ! -z ${MENUPATH} ]] && rm -rf ${MENUPATH}/*.menu
+    fi
+    find ${FUNTION_DIR} -name "*.sh" | while read SH_FILE
+    do
+        # 17为sh_menu/Function长度
+        if [[ -n ${SH_FILE} ]]
+        then
+            #echo ${SH_FILE:17}
+            FILE_PATH=`echo ${SH_FILE:17}`
+            FILE_NAME=`basename "${FILE_PATH}"`
+            #echo ${FILE_NAME}
+            if [[ "w${FILE_NAME}" == "w${FILE_PATH}"  ]]
+            then
+                # 表示为一级菜单脚本
+                #echo "########"
+                echo "${FILE_NAME}%${FUNTION_DIR_S}/${FILE_NAME}" >> ${MENUFILE}
+                chmod 777 ${FUNTION_DIR_S}/${FILE_NAME}
+            else
+                # 需要生成二级菜单
+                # Function 目录下的目录名作为打开二级菜单的名称
+                SUB_MENU_NAME=`echo ${FILE_PATH} | awk -F / '{print $1}'`
 
+                # 将目录名称写到一级菜单中
+                echo "${SUB_MENU_NAME}%${SUB_MENU_NAME}.menu" >> ${MENUFILE}
+
+                # 将 Function 二级目录下的脚本写到二级菜单中
+                echo "${FILE_NAME}%${FUNTION_DIR_S}/${FILE_PATH}" >> ${MENUPATH}/${SUB_MENU_NAME}.menu
+                chmod +x ${FUNTION_DIR_S}/${FILE_PATH}
+            fi
+        fi
+    done
+    sh main.sh -t
+    echo "OK"
+}
+#}}}
+#{{{Tree
 Tree()
 {
 menu=`expr $menu + 1`
@@ -95,7 +146,8 @@ do
 done
 menu=`expr $menu - 1`
 }
-
+#}}}
+#{{{Menu
 Menu()
 {
 
@@ -127,7 +179,6 @@ if [ $menu -gt 1 ]
        echo "   b Back    "
        echo
 fi
-echo  "   a All scripts will be runing "
 echo  "   h Help    "
 echo  "   x Exit    "
 echo
@@ -160,47 +211,44 @@ case "$input" in
          fi
          ;;
 
-      a)
-         awk -F"$MENUCHAR" 'BEGIN{
-                           a=0
-                          }
-                         {
-                           if($2!~/'$MENUTYPE'$/){
-                             print $1":";print "---------------------"
-                             system($2)
-                             printf "\n"
-                             a+=1
-                             }
-                          }
-                      END{
-                           if(a==0)
-                              print "Non executable statement / scripts, please enter the serial number to open the corresponding sub menu"
-                         }' $1
-         Enter
-         ;;
+      #a)
+      #   awk -F"$MENUCHAR" 'BEGIN{
+      #                     a=0
+      #                    }
+      #                   {
+      #                     if($2!~/'$MENUTYPE'$/){
+      #                       print $1":";print "---------------------"
+      #                       system($2)
+      #                       printf "\n"
+      #                       a+=1
+      #                       }
+      #                    }
+      #                END{
+      #                     if(a==0)
+      #                        print "Non executable statement / scripts, please enter the serial number to open the corresponding sub menu"
+      #                   }' $1
+      #   Enter
+      #   ;;
 
       h) clear
 	     echo -e "\033[42;37m                 Help information                \033[m"
          echo "-------------------------------------------------"
          echo
-	     echo -e "\033[42;37m                 version 2.2                     \033[m"
-	     echo -e "\033[42;37m                 Time:2014-11-16                 \033[m"
+	     echo -e "\033[42;37m                 version $VERSION                   \033[m"
          echo
          echo "    input number to open a menu/run a script"
          echo
          echo "    [tips] + That is a menu"
          echo "           * That is a script"
          echo
-         echo "    a Execute all scripts"
          echo "    b Back"
          echo "    h Help"
          echo "    x Exit" 
          echo
          echo "-------------------------------------------------"
-         echo -e "|   \033[44;37mAuthor :\033[0m wangbin                             |"
-         echo -e "|   \033[44;37mE-mail :\033[0m wangbin139967@163.com               |"
-         echo -e "|   \033[44;37mTell   :\033[0m 18235139967                         |"
-         echo -e "|   \033[44;37mTime   :\033[0m 2014/10/28                          |"
+         echo -e "   \033[44;37mAuthor :\033[0m 遇见王斌                             "
+         echo -e "   \033[44;37mE-mail :\033[0m wangbin139967@163.com               "
+         echo -e "   \033[44;37mTime   :\033[0m ${TIME}                          "
          echo "-------------------------------------------------"
          Enter
          ;;
@@ -228,10 +276,8 @@ esac
 done
  
 }
-
-
-
-while getopts vtc:f:h OPTION
+#}}}
+while getopts vtcf:h OPTION
 do
         case $OPTION in
 
@@ -240,21 +286,27 @@ do
                    ;;
                 v)
                    verbose=1
+                   echo ${VERSION}
+                   exit 0
                    ;;
                 f)
                    MENUFILE=$MENUPATH/`echo $OPTARG | sed "s/\.$MENUTYPE$//"`.$MENUTYPE
+                   ;;
+                c)
+                   Create_file
+                   exit 0
                    ;;
                 h)
                    echo
                    echo "HELP"
                    echo
-                   echo "Usage: `basename $0` [-t[-v]] [-h] [-c char] [-f file]"
+                   echo "Usage: `basename $0` [-t[-v]] [-c] [-h] [-f file]"
                    echo
                    echo "-t, --Tree"
                    echo
-                   echo "-v, --Verbose"
+                   echo "-v"
                    echo
-                   echo "-c char "
+                   echo "-c"
                    echo
                    echo "-f file "
                    echo

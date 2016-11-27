@@ -1,7 +1,7 @@
 #!/usr/bin/python 
 #coding:utf-8 
 from __future__ import print_function
-__version__ = "1.2.0"
+__version__ = "1.1.7_1"
  
 import json 
 import urllib2 
@@ -12,7 +12,6 @@ import os
 import time
 import unicodedata
 import config
-from pydoc import render_doc
 
 root_path = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(root_path)
@@ -90,11 +89,16 @@ class zabbix_api:
             self.authID = response['result'] 
             return self.authID 
     def host_get(self,hostName=''): 
-        '''
-        get host
-        [eg1]./zabbix_api.py host_get
-        [eg2]./zabbix_api host_get "Zabbix server"
-        '''
+        """
+        @brief return host list
+        @param hostName:hostname
+        """
+        ##
+        # @brief host_get 
+        # @param hostName
+        #
+        # @return 
+
         data=json.dumps({
                 "jsonrpc": "2.0",
                 "method": "host.get",
@@ -132,15 +136,11 @@ class zabbix_api:
                     output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
                 else:
                     output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
-                    self.__generate_output(output)
+                    self.generate_output(output)
                     return host['hostid']
-            self.__generate_output(output)
+            self.generate_output(output)
             return 0
-    def __host_get(self,hostgroupID='',hostID=''): 
-        '''
-        内部函数
-        返回特定主机组下的主机列表和某个主机的列表
-        '''
+    def _host_get(self,hostgroupID='',hostID=''): 
         #  (1)Return all hosts.
         #  (2)Return only hosts that belong to the given groups.
         #  (3)Return only hosts with the given host IDs.
@@ -209,11 +209,7 @@ class zabbix_api:
             for host in response['result']:      
                 all_host_list.append((host['hostid'],host['host'],host['name'],host['interfaces'][0]["ip"]))
             return all_host_list
-    def host_create(self, hostip,hostname,hostgroupName,templateName): 
-        '''
-        create a host
-        [eg1]./zabbix_api.py host_create 192.168.199.2 "ceshi_host" "store" "Template OS Linux"
-        '''
+    def host_create(self, hostip,hostname,hostgroupName, templateName): 
         if self.host_get(hostname):
             print("\033[041m该主机已经添加!\033[0m")
             sys.exit(1)
@@ -260,21 +256,16 @@ class zabbix_api:
             print("Error as ", e)
         else: 
             response = json.loads(result.read()) 
+            print(response)
             result.close() 
-            print("添加主机 : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (hostip, response['result']['hostids'][0]))
-    def host_status(self,hostname,status="Disabled"):
-        '''
-        Turns a host Enabled or Disabled[default]
-        [eg1]./zabbix_api.py host_status "ceshi_host" "Disabled"
-        [eg2]./zabbix_api.py host_status "ceshi_host" "Enabled"
-        '''
-        status_flag={"Enabled":0,"Disabled":1}
+            print("添加主机 : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (hostip, response['result']['hostids']))
+    def host_disable(self,hostname):
         data=json.dumps({
             "jsonrpc": "2.0",
             "method": "host.update",
             "params": {
             "hostid": self.host_get(hostname),
-            "status": status_flag[status]
+            "status": 1
             },
             "auth":self.authID,
             "id": 1
@@ -290,13 +281,8 @@ class zabbix_api:
             response = json.loads(result.read()) 
             result.close()
             print('----主机现在状态------------')
-            self.host_get(hostname)
+        print(self.host_get(hostname))
     def host_delete(self,hostnames):
-        '''
-        Remove the host
-        [eg1]./zabbix_api.py host_delete "ceshi_host"
-        [eg1]./zabbix_api.py host_delete "ceshi_host1,ceshi_host2"
-        '''
         hostid_list=[]
         for i in hostnames.split(','):
             hostid = self.host_get(i)
@@ -322,11 +308,6 @@ class zabbix_api:
             print("主机 \033[041m %s\033[0m  已经删除 !"%hostnames)
     # hostgroup
     def hostgroup_get(self, hostgroupName=''): 
-        '''
-        get hostgroup list
-        [eg1]./zabbix_api.py hostgroup_get
-        [eg1]./zabbix_api.py hostgroup_get "Templates"
-        '''
         data = json.dumps({ 
                            "jsonrpc":"2.0", 
                            "method":"hostgroup.get", 
@@ -361,12 +342,8 @@ class zabbix_api:
                 else:
                     self.hostgroupID = group['groupid'] 
                     return group['groupid'] 
-            self.__generate_output(output)
-    def __hostgroup_get_name(self, groupid=''): 
-        '''
-        内部函数
-        根据hostgroup id 获得主机群组的 name
-        '''
+            self.generate_output(output)
+    def _hostgroup_get_name(self, groupid=''): 
         data = json.dumps({ 
                            "jsonrpc":"2.0", 
                            "method":"hostgroup.get", 
@@ -399,10 +376,7 @@ class zabbix_api:
             else:
                 return group['name'] 
     def hostgroup_create(self,hostgroupName):
-        '''
-        create a hostgroup
-        [eg1]./zabbix_api.py hostgroup_create "ceshi_hostgroup"
-        '''
+
         if self.hostgroup_get(hostgroupName):
             print("hostgroup  \033[42m%s\033[0m is exist !"%hostgroupName)
             sys.exit(1)
@@ -428,15 +402,20 @@ class zabbix_api:
             response = json.loads(result.read()) 
             result.close()
             print("\033[042m 添加主机组:%s\033[0m  hostgroupID : %s"%(hostgroupName,response['result']['groupids']))
-    def item_get(self, host_ID,itemName=''): 
-        '''
-        return a item list
-        [eg1]./zabbix_api.py item_get 10084
-        [eg2]./zabbix_api.py item_get 10084 "Free disk"
-        '''
+    def item_get(self, host_ID='',itemName=''): 
+        # item
+        ##
+        # @brief item_get 
+        #
+        # @param host_ID
+        # @param itemName
+        #
         # @return list
         # list_format
         # [item['itemid'],item['name'],item['key_'],item['delay'],item['value_type']]
+        if  len(host_ID)==0:
+            print("ERR- host_ID is null")
+            return 0
 
         data = json.dumps({ 
                            "jsonrpc":"2.0", 
@@ -484,16 +463,17 @@ class zabbix_api:
                     else:
                         if my_compare.my_compare(item['name'],itemName):
                             output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history']])
-            self.__generate_output(output)
+            self.generate_output(output)
             if len(output[1:]):
                 return output[1:]
             else:
                 return 0
-    def __item_search(self,item_ID=''): 
-        '''
-        内部函数
-        根据 某个item_ID 确定 item 的value_type 
-        '''
+    def _item_search(self,item_ID=''): 
+        ##
+        # @param item_ID
+        # @return list
+        # list_format
+        # [item['itemid'],item['name'],item['key_'],item['delay'],item['value_type']]
         data = json.dumps({ 
                            "jsonrpc":"2.0", 
                            "method":"item.get", 
@@ -518,12 +498,7 @@ class zabbix_api:
                 return 0
             return response['result'][0]['value_type']
     # history
-    def history(self,item_ID,date_from,date_till): 
-        '''
-        return history of item
-        [eg1]./zabbix_api.py history 23296 "2016-08-01 00:00:00" "2016-09-01 00:00:00"
-        [note]The date_till time must be within the historical data retention time
-        '''
+    def history(self,item_ID='',date_from='',date_till=''): 
         dateFormat = "%Y-%m-%d %H:%M:%S"
         try:
             startTime =  time.strptime(date_from,dateFormat)
@@ -532,16 +507,13 @@ class zabbix_api:
             err_msg("时间格式 ['2016-05-01 00:00:00'] ['2016-06-01 00:00:00']")
         time_from = int(time.mktime(startTime))
         time_till = int(time.mktime(endTime))
-        history_type=self.__item_search(item_ID)
-        self.__history_get(history_type,item_ID,time_from,time_till)
+        history_type=self._item_search(item_ID)
+        self._history_get(history_type,item_ID,time_from,time_till)
             
-    def __history_get(self,history,item_ID,time_from,time_till): 
-        '''
-        内部函数
-        输出某个 item  特定时间段中的 history 值
-        '''
+    def _history_get(self,history='',item_ID='',time_from='',time_till=''): 
         history_data=[]
         history_data[:]=[]
+              
         data = json.dumps({ 
                            "jsonrpc":"2.0", 
                            "method":"history.get", 
@@ -573,19 +545,13 @@ class zabbix_api:
                 self.logger.debug(debug_info)
                 return 0.0
             for history_info in response['result']:
-                timeArray = time.localtime(int(history_info['clock']))
-                otherStyleTime = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
-                print(item_ID,history_info['value'],otherStyleTime)
-    def __get_select_condition_info(self,select_condition): 
-        '''
-        内部函数
-        获得特定条件的主机信息
-        '''
+                print(item_ID,history_info['value'])
+    def _get_select_condition_info(self,select_condition): 
         output = ""
         if select_condition["hostgroupID"]:
             flag = 1
             for i in select_condition["hostgroupID"].split(','):
-                hostgroup_name = self.__hostgroup_get_name(i)
+                hostgroup_name = self._hostgroup_get_name(i)
                 if flag:
                     flag = 0
                     output = hostgroup_name + output
@@ -596,7 +562,7 @@ class zabbix_api:
             output = u"主机组:" + u"无"
         if select_condition["hostID"]:
             flag = 1
-            host_name = self.__host_get(hostID=select_condition["hostID"])
+            host_name = self._host_get(hostID=select_condition["hostID"])
             for host_info in host_name:
                 if flag:
                     output = host_info[2]+"\n"+output
@@ -615,7 +581,7 @@ class zabbix_api:
     # @param export_xls 
     #
     # @return 
-    def _report(self,itemName,date_from,date_till,export_xls,select_condition): 
+    def report(self,itemName,date_from,date_till,export_xls,select_condition): 
 
         # 设置为调用的函数不输出
         self.output = False
@@ -642,14 +608,14 @@ class zabbix_api:
 
         # 获取需要输出报表信息的host_list
         if select_condition["hostgroupID"] or select_condition["hostID"]:
-            xls_range = self.__get_select_condition_info(select_condition)
+            xls_range = self._get_select_condition_info(select_condition)
                 
             host_list_g=[]
             host_list_h=[]
             if select_condition["hostgroupID"]:
-                host_list_g=self.__host_get(hostgroupID=select_condition["hostgroupID"])
+                host_list_g=self._host_get(hostgroupID=select_condition["hostgroupID"])
             if select_condition["hostID"]:
-                host_list_h=self.__host_get(hostID=select_condition["hostID"])
+                host_list_h=self._host_get(hostID=select_condition["hostID"])
             # 将host_list_h的全部元素添加到host_list_g的尾部
             host_list_g.extend(host_list_h)
 
@@ -657,7 +623,7 @@ class zabbix_api:
             host_list = list(set(host_list_g))
         else:
             xls_range = u"ALL"
-            host_list = self.__host_get()
+            host_list = self._host_get()
         for host_info in host_list: 
             itemid_all_list = self.item_get(host_info[0],itemName)
             if itemid_all_list == 0:
@@ -669,7 +635,7 @@ class zabbix_api:
                 history_type = itemid_sub_list[4]
                 debug_msg="itemid:%s"%itemid
                 self.logger.debug(debug_msg)
-                report_min,report_max,report_avg = self.__trend_get(itemid,time_from,time_till)
+                report_min,report_max,report_avg = self.trend_get(itemid,time_from,time_till)
                 if history_type=="3":
                     report_min=int(report_min)
                     report_max=int(report_max)
@@ -722,10 +688,7 @@ class zabbix_api:
                 xlswriter.writerow(report_item,sheet_name=sheetName,border=True)
             xlswriter.save()
         return 0
-    def __agent_ping(self,item_ID='',time_from='',time_till=''): 
-        '''
-        此函数为 report_available 引用函数
-        '''
+    def agent_ping(self,item_ID='',time_from='',time_till=''): 
         data = json.dumps({ 
                            "jsonrpc":"2.0", 
                            "method":"trend.get", 
@@ -743,6 +706,7 @@ class zabbix_api:
                                "itemids":item_ID,
                                "limit":"8760"
                                      }, 
+
                            "auth":self.authID, 
                            "id":1, 
                            }) 
@@ -773,15 +737,20 @@ class zabbix_api:
                 sum_avg_value = sum_avg_value + hour_avg
             trend_sum = len(response['result'])
             return trend_sum,sum_num_value,sum_avg_value
-    def __diff_hour(self,date1,date2):
-        '''
-        内部函数
-        输出两个时间点相差的小时数
-        '''
+    def _diff_hour(self,date1,date2):
         diff_seconds = date2 - date1
         diff_hour = diff_seconds / 3600
         return diff_hour
-    def _report_available(self,itemName,date_from,date_till,export_xls,select_condition,value_type=False): 
+    ##
+    # @brief report_available
+    #
+    # @param itemName
+    # @param date_from
+    # @param date_till
+    # @param export_xls
+    #
+    # @return 
+    def report_available(self,itemName,date_from,date_till,export_xls,select_condition,value_type=False): 
         # 设置为调用的函数不输出
         self.output = False
 
@@ -798,20 +767,20 @@ class zabbix_api:
 
         time_from = int(time.mktime(startTime))+1
         time_till = int(time.mktime(endTime))-1
-        diff_hour = self.__diff_hour(time_from,time_till)
+        diff_hour = self._diff_hour(time_from,time_till)
 
         if time_from > time_till:
             err_msg("date_till must after the date_from time")
 
         # 获取需要输出报表信息的host_list
         if select_condition["hostgroupID"] or select_condition["hostID"]:
-            xls_range = self.__get_select_condition_info(select_condition)
+            xls_range = self._get_select_condition_info(select_condition)
             host_list_g=[]
             host_list_h=[]
             if select_condition["hostgroupID"]:
-                host_list_g=self.__host_get(hostgroupID=select_condition["hostgroupID"])
+                host_list_g=self._host_get(hostgroupID=select_condition["hostgroupID"])
             if select_condition["hostID"]:
-                host_list_h=self.__host_get(hostID=select_condition["hostID"])
+                host_list_h=self._host_get(hostID=select_condition["hostID"])
             # 将host_list_h的全部元素添加到host_list_g的尾部
             host_list_g.extend(host_list_h)
 
@@ -819,7 +788,7 @@ class zabbix_api:
             host_list = list(set(host_list_g))
         else:
             xls_range = u"ALL"
-            host_list = self.__host_get()
+            host_list = self._host_get()
         for host_info in host_list: 
             itemid_all_list = self.item_get(host_info[0],itemName)
             if itemid_all_list == 0:
@@ -834,7 +803,7 @@ class zabbix_api:
                 if not check_time:
                     check_time = 60
                 hour_check_num = int(3600/check_time)
-                trend_sum,sum_num_value,sum_avg_value = self.__agent_ping(itemid,time_from,time_till)
+                trend_sum,sum_num_value,sum_avg_value = self.agent_ping(itemid,time_from,time_till)
                 
                 if (sum_avg_value > 0) and (trend_sum > 0):
                     # 分子为trend_avg平均值之和
@@ -848,6 +817,7 @@ class zabbix_api:
                     if value_type:
                         sum_value = trend_sum
                         value_type_info = "zero"
+
                     avg_ping=sum_avg_value_p/sum_value
                     if avg_ping == 100:
                         avg_ping =int(avg_ping)
@@ -859,10 +829,13 @@ class zabbix_api:
                     diff_ping = 0
                     sum_check = -1
                     value_type_info = "-1"
+                
                 debug_msg="time[%s] hour[%s] itemid:%s update_time:%s trend_sum:%d,sum_avg:%s,sum_num:%d,expected_value:%s type:%s"\
                         %(str(sheetName),str(diff_hour),itemid,item_update_time,trend_sum,str(sum_avg_value),sum_num_value,str(sum_check),value_type_info)
                 self.logger.debug(debug_msg)
+
                 report_output.append([host_info[0],host_info[2],item_name,"100",str(avg_ping),str(diff_ping)])
+        
         if self.output_sort:
             # 排序，如果是false，是升序
             # 如果是true，是降序
@@ -908,7 +881,7 @@ class zabbix_api:
         return 0
     ##
     # @return 
-    def _report_available2(self,date_from,date_till,export_xls,select_condition,itemkey_list=''): 
+    def report_available2(self,date_from,date_till,export_xls,select_condition,itemkey_list=''): 
         dateFormat = "%Y-%m-%d %H:%M:%S"
         #dateFormat = "%Y-%m-%d"
         report_output=[]
@@ -923,20 +896,21 @@ class zabbix_api:
 
         time_from = int(time.mktime(startTime))+1
         time_till = int(time.mktime(endTime))-1
-        diff_hour = self.__diff_hour(time_from,time_till)
+        diff_hour = self._diff_hour(time_from,time_till)
 
         if time_from > time_till:
             err_msg("date_till must after the date_from time")
 
         # 获取需要输出报表信息的host_list
         if select_condition["hostgroupID"] or select_condition["hostID"]:
-            xls_range = self.__get_select_condition_info(select_condition)
+            xls_range = self._get_select_condition_info(select_condition)
+                
             host_list_g=[]
             host_list_h=[]
             if select_condition["hostgroupID"]:
-                host_list_g=self.__host_get(hostgroupID=select_condition["hostgroupID"])
+                host_list_g=self._host_get(hostgroupID=select_condition["hostgroupID"])
             if select_condition["hostID"]:
-                host_list_h=self.__host_get(hostID=select_condition["hostID"])
+                host_list_h=self._host_get(hostID=select_condition["hostID"])
             # 将host_list_h的全部元素添加到host_list_g的尾部
             host_list_g.extend(host_list_h)
 
@@ -944,12 +918,12 @@ class zabbix_api:
             host_list = list(set(host_list_g))
         else:
             xls_range = u"ALL"
-            host_list = self.__host_get()
+            host_list = self._host_get()
         for host_info in host_list: 
             # host_info[1]是host_name,host_info[2]是name
             hostname = host_info[2]
             hostip = host_info[3]
-            triggerid_all_list = self.__triggers_get(host_info[0])
+            triggerid_all_list = self._triggers_get(host_info[0])
             if triggerid_all_list == 0:
                 continue
             for triggerid_sub_list in triggerid_all_list:
@@ -961,11 +935,11 @@ class zabbix_api:
                 if itemkey_list:
                     if trigger_key not in itemkey_list:
                         continue
-                event_result = self.__event_get(triggerid,time_from,time_till,value="1")
+                event_result = self.event_get(triggerid,time_from,time_till,value="1")
                 if not event_result:
                     report_output.append([hostname,hostip,trigger_name,"0","100%",trigger_prevvalue+trigger_units])
                 else:
-                    event_result = self.__event_get(triggerid,time_from,time_till)
+                    event_result = self.event_get(triggerid,time_from,time_till)
                     if not event_result:
                         report_output.append([hostname,hostip,trigger_name,"0","100%",trigger_prevvalue+trigger_units])
                     else:
@@ -1009,7 +983,7 @@ class zabbix_api:
         return 0
     ##
     # @return 
-    def _report_flow(self,date_from,date_till,export_xls,hosts_file="./switch"): 
+    def report_flow(self,date_from,date_till,export_xls,hosts_file="./switch"): 
         host_all_info = config.read_config(hosts_file)
         dateFormat = "%Y-%m-%d %H:%M:%S"
         report_output=[]
@@ -1034,7 +1008,7 @@ class zabbix_api:
             # host_info (description,hostid,ethernet_port,default_speed)
             description = host_info[0]
             hostid = host_info[1]
-            host_name_list = self.__host_get(hostID=hostid)
+            host_name_list = self._host_get(hostID=hostid)
             if len(host_name_list) == 0:
                 continue
             host_name=host_name_list[0][2]
@@ -1053,7 +1027,7 @@ class zabbix_api:
                 itemid_all_list = self.item_get(hostid,item_speed)
                 if itemid_all_list:
                     itemid=itemid_all_list[0][0]
-                    report_min,report_max,report_avg = self.__trend_get(itemid,time_from,time_till)
+                    report_min,report_max,report_avg = self.trend_get(itemid,time_from,time_till)
                     speed = report_max
                     if speed == 0:
                         speed = 1000
@@ -1064,7 +1038,7 @@ class zabbix_api:
             itemid_in_list = self.item_get(hostid,item_ethernet_port_in)
             if itemid_in_list:
                 itemid_in=itemid_in_list[0][0]
-                in_min,in_max,in_avg = self.__trend_get(itemid_in,time_from,time_till)
+                in_min,in_max,in_avg = self.trend_get(itemid_in,time_from,time_till)
                 in_min = float('%0.4f'%(in_min /1000000.0))
                 in_max = float('%0.4f'%(in_max /1000000.0))
                 in_avg = float('%0.4f'%(in_avg /1000000.0))
@@ -1082,7 +1056,7 @@ class zabbix_api:
             itemid_out_list = self.item_get(hostid,item_ethernet_port_out)
             if itemid_out_list:
                 itemid_out = itemid_out_list[0][0]
-                out_min,out_max,out_avg = self.__trend_get(itemid_out,time_from,time_till)
+                out_min,out_max,out_avg = self.trend_get(itemid_out,time_from,time_till)
                 out_min = float('%0.4f'%(out_min /1000000.0))
                 out_max = float('%0.4f'%(out_max /1000000.0))
                 out_avg = float('%0.4f'%(out_avg /1000000.0))
@@ -1198,26 +1172,12 @@ class zabbix_api:
                     xlswriter.writerow(report_item[:-1],sheet_name=sheetName,border=True)
             xlswriter.save()
         return 0
-    def action_log(self,date_from,date_till):
-        '''
-        Outputs the action_log for a specific time
-        [eg1]./zabbix_api.py action_log "2016-08-01 00:00:00" "2016-09-01 00:00:00"
-        '''
-        dateFormat = "%Y-%m-%d %H:%M:%S"
-        try:
-            startTime =  time.strptime(date_from,dateFormat)
-            endTime =  time.strptime(date_till,dateFormat)
-        except:
-            err_msg("时间格式 ['2016-05-01 00:00:00'] ['2016-06-01 00:00:00']")
-        time_from = int(time.mktime(startTime))
-        time_till = int(time.mktime(endTime))
+    def alert_get(self):
         data=json.dumps({
                 "jsonrpc": "2.0",
                 "method": "alert.get",
                 "params": {
                     "output":"extend",
-                    "time_from":time_from,
-                    "time_till":time_till
                 },
                 "auth":self.authID,
                 "id": 1
@@ -1236,15 +1196,15 @@ class zabbix_api:
                 print("no alert")
                 return 0
             for alert in response['result']:      
-                timeArray = time.localtime(int(alert['clock']))
-                otherStyleTime = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
-                print(alert['alertid'],otherStyleTime,alert['sendto'],alert['subject'],alert['status'])
+                print(alert['alertid'],alert['status'])
             result.close() 
-    def __trend_get(self,itemID='',time_from='',time_till=''): 
-        '''
-        内部函数
-        输出一段时间内的某个item的最大值、平均值、最小值
-        '''
+    ##
+    # @brief trend_get 
+    #
+    # @param itemID
+    #
+    # @return itemid
+    def trend_get(self,itemID='',time_from='',time_till=''): 
         trend_min_data=[]
         trend_max_data=[]
         trend_avg_data=[]
@@ -1302,11 +1262,6 @@ class zabbix_api:
             return (trend_min,trend_max,trend_avg)
     # template
     def template_get(self,templateName=''): 
-        '''
-        get template list
-        [eg1]./zabbix_api.py template_get
-        [eg2-Internal call]./zabbix_api template_get "Template OS Linux"
-        '''
         data = json.dumps({ 
                            "jsonrpc":"2.0", 
                            "method": "template.get", 
@@ -1340,7 +1295,7 @@ class zabbix_api:
                 else:
                     self.templateID = response['result'][0]['templateid'] 
                     return response['result'][0]['templateid']
-            self.__generate_output(output)
+            self.generate_output(output)
             return 0
     def configuration_import(self,template): 
         rules = {
@@ -1421,11 +1376,14 @@ class zabbix_api:
             response = json.loads(result.read()) 
             result.close() 
             print(response['result'])
+    # user
+    ##
+    # @brief user_get 
+    #
+    # @param userName
+    #
+    # @return 
     def user_get(self,userName=''): 
-        '''
-        get user list
-        [eg1]./zabbix_api.py user_get
-        '''
         data=json.dumps({
                 "jsonrpc": "2.0",
                 "method": "user.get",
@@ -1461,12 +1419,8 @@ class zabbix_api:
                     output.append([user['userid'],user['alias'],user['name'],user['url']])
                 else:
                     return user['userid']
-            self.__generate_output(output)
+            self.generate_output(output)
     def user_create(self, userName,userPassword,usergroupName,mediaName,email): 
-        '''
-        create a user
-        [eg1]./zabbix_api.py user_create "ceshi_user" "123456" "ceshi_usergroup" "alerts" "meetbill@163.com"
-        '''
         if self.user_get(userName):
             print("\033[041mthis userName is exists\033[0m" )
             sys.exit(1)
@@ -1510,10 +1464,6 @@ class zabbix_api:
             result.close() 
             print("add user : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (usergroupName, response['result']['userids'][0]))
     def usergroup_get(self,usergroupName=''): 
-        '''
-        return usergroup list
-        [eg1]./zabbix_api.py usergroup_get
-        '''
         data=json.dumps({
                 "jsonrpc": "2.0",
                 "method": "usergroup.get",
@@ -1550,13 +1500,9 @@ class zabbix_api:
                     output.append([user_group['usrgrpid'],user_group['name'],user_group['gui_access'],user_group['users_status']])
                 else:
                     return user_group['usrgrpid']
-            self.__generate_output(output)
+            self.generate_output(output)
             return 0
     def usergroup_create(self, usergroupName,hostgroupName): 
-        '''
-        Create a usergroup
-        [eg1]./zabbix_api.py usergroup_create "ceshi_usergroup" "Linux servers"
-        '''
         if self.usergroup_get(usergroupName):
             print("\033[041mthis usergroupName is exists\033[0m")
             sys.exit(1)
@@ -1588,10 +1534,6 @@ class zabbix_api:
             result.close() 
             print("add usergroup : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (usergroupName, response['result']['usrgrpids'][0]) )
     def usergroup_del(self,usergroupName):
-        '''
-        Remove a usergroup
-        [eg1]./zabbix_api.py usergroup_del "ceshi_usergroup"
-        '''
         usergroup_list=[]
         for i in usergroupName.split(','):
             usergroupID=self.usergroup_get(i)
@@ -1619,12 +1561,12 @@ class zabbix_api:
             response = json.loads(result.read()) 
             result.close() 
             print("usergroup \033[042m %s\033[0m  delete OK !"% usergroupName )
+    # mediatype
+    ##
+    # @brief mediatype_get 
+    #
+    # @return 
     def mediatype_get(self,mediatypeName=''): 
-        '''
-        return a mediatype list
-        [eg1]./zabbix_api.py mediatype_get
-        '''
-
         data=json.dumps({
                 "jsonrpc": "2.0",
                 "method": "mediatype.get",
@@ -1660,19 +1602,16 @@ class zabbix_api:
                     return mediatype['mediatypeid']
                 else:
                     output.append([mediatype['mediatypeid'],mediatype['type'],mediatype['description'],mediatype['exec_path']])
-            self.__generate_output(output)
+            self.generate_output(output)
             return 0
-    def mediatype_create(self, mediatypeName,script_name): 
-        '''
-        create a mediatype[script]
-        [eg1]./zabbix_api.py mediatype_create "alerts" "alerts.py"
-        '''
 
-        # mediatypeType Possible values: 
-        # 0 - email; 
-        # 1 - script; 
-        # 2 - SMS; 
-        # 3 - Jabber; 
+
+    # mediatypeType Possible values: 
+    # 0 - email; 
+    # 1 - script; 
+    # 2 - SMS; 
+    # 3 - Jabber; 
+    def mediatype_create(self, mediatypeName,mediatypePath): 
         if self.mediatype_get(mediatypeName):
             print("\033[041mthis mediatypeName is exists\033[0m" )
             sys.exit(1)
@@ -1683,7 +1622,7 @@ class zabbix_api:
                            "params": {
                                  "description": mediatypeName,
                                  "type": 1,
-                                 "exec_path": script_name,
+                                 "exec_path": mediatypePath,
                                  "exec_params":"{ALERT.SENDTO}\n{ALERT.SUBJECT}\n{ALERT.MESSAGE}\n"
                                                },
                            "auth":self.authID, 
@@ -1702,10 +1641,6 @@ class zabbix_api:
             result.close() 
             print("add mediatype : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (mediatypeName, response['result']['mediatypeids'][0]))
     def mediatype_del(self,mediatypeName):
-        '''
-        Remove a mediatype
-        [eg1]./zabbix_api.py mediatype_del "alerts"
-        '''
         mediatype_list=[]
         for i in mediatypeName.split(','):
             mediatypeID=self.mediatype_get(i)
@@ -1771,7 +1706,7 @@ class zabbix_api:
                     output.append([drule['druleid'],drule['name'],drule['iprange'],status[drule['status']]])
                 else:
                     return drule['druleid']
-            self.__generate_output(output)
+            self.generate_output(output)
             return 0
     def drule_create(self, druleName,iprange): 
         if self.drule_get(druleName):
@@ -1808,16 +1743,12 @@ class zabbix_api:
             response = json.loads(result.read()) 
             result.close() 
             print("add drule : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (druleName, response['result']['druleids'][0]))
+    # action
+    # eventsource 0 triggers
+    # eventsource 1 discovery
+    # eventsource 2 auto registration
+    # eventsource 3 internal
     def action_get(self,actionName=''): 
-        '''
-        rerun action list
-        [eg1]./zabbix_api.py action_get
-        '''
-        # action
-        # eventsource 0 triggers
-        # eventsource 1 discovery
-        # eventsource 2 auto registration
-        # eventsource 3 internal
         data=json.dumps({
                 "jsonrpc": "2.0",
                 "method": "action.get",
@@ -1859,13 +1790,9 @@ class zabbix_api:
                 else:
                     self.logger.info(str(action))
                     return action['actionid']
-            self.__generate_output(output)
+            self.generate_output(output)
             return 0
     def action_autoreg_create(self, actionName,hostgroupName): 
-        '''
-        create autoreg action
-        [eg1]./zabbix_api.py action_autoreg_create "ceshi_action" "Linux servers"
-        '''
         if self.action_get(actionName):
             output_print={}
             output_print["status"]="ERR"
@@ -1955,10 +1882,6 @@ class zabbix_api:
                 print(json.dumps(output_print))
             return json.dumps(output_print)
     def action_trigger_create(self, actionName): 
-        '''
-        create trigger action
-        [eg1]./zabbix_api.py action_trigger_create "ceshi_trigger_action"
-        '''
         if self.action_get(actionName):
             output_print={}
             output_print["status"]="ERR"
@@ -1966,6 +1889,50 @@ class zabbix_api:
             if self.output:
                 print(json.dumps(output_print))
             return json.dumps(output_print)
+
+        #data = json.dumps({ 
+        #                   "jsonrpc":"2.0", 
+        #                   "method":"action.create", 
+        #                   "params": {
+        #                       "name": actionName,
+        #                       "eventsource": 0,
+        #                       "status": 0,
+        #                       "esc_period": 0,
+        #                       "operations": [
+        #                            {
+        #                                "operationtype": 2,
+        #                                "esc_step_from": 1,
+        #                                "esc_period": 0,
+        #                                "esc_step_to": 1
+        #                            },
+        #                            {
+        #                                "operationtype": 4,
+        #                                "esc_step_from": 2,
+        #                                "esc_period": 0,
+        #                                "opgroup": [
+        #                                    {
+        #                                        "groupid":hostgroupID
+        #                                    }
+        #                                ],
+        #                                "esc_step_to": 2
+        #                            },
+        #                            {
+        #                                "operationtype": 6,
+        #                                "esc_step_from": 3,
+        #                                "esc_period": 0,
+        #                                "optemplate": [
+        #                                    {
+        #                                        "templateid":templateID
+        #                                    }
+        #                                ],
+        #                                "esc_step_to": 3
+        #                            }
+        #                        ]
+        #                   },
+        #                   "auth": self.user_login(), 
+        #                   "id":1                   
+        #}) 
+
         data = json.dumps({ 
             "jsonrpc": "2.0",
             "method": "action.create",
@@ -2027,11 +1994,6 @@ class zabbix_api:
                 print(json.dumps(output_print))
             return json.dumps(output_print)
     def action_discovery_create(self, actionName,hostgroupName): 
-        '''
-        create autoreg action
-        [eg1]./zabbix_api.py action_discovery_create "ceshi_action" "Linux servers"
-        '''
-
         if self.action_get(actionName):
             print("\033[041mthis druleName is exists\033[0m")
             sys.exit(1)
@@ -2121,7 +2083,7 @@ class zabbix_api:
         self.output = False
 
         # 获取host列表
-        host_list = self.__host_get()
+        host_list = self._host_get()
         sum_history_quota = 0
         sum_trends_quota = 0
         sum_event_quota = 0
@@ -2146,11 +2108,9 @@ class zabbix_api:
         mysql_quota = (sum_history_quota + sum_trends_quota + sum_event_quota)/1000000000.0
         print("item_num:%d Use:%fG"%(sum_item_num,mysql_quota))
         return 0
-    def __triggers_get(self, host_ID=''): 
-        '''
-        内部函数
-        输出某个 host 的所有 trigger_get
-        '''
+    
+    #triggers
+    def _triggers_get(self, host_ID=''): 
         if  len(host_ID)==0:
             print("ERR- host_ID is null")
             return 0
@@ -2188,12 +2148,7 @@ class zabbix_api:
             for trigger in response['result']:
                 all_trigger_list.append((trigger["triggerid"],trigger["description"],trigger["items"][0]["key_"],trigger["items"][0]["prevvalue"],trigger["items"][0]["units"]))
             return all_trigger_list
-    def issues(self): 
-        '''
-        output issues list
-        [eg1]./zabbix_api.py issues
-        '''
-        #trigger_get
+    def triggers_get(self): 
 
         all_trigger_list=[]
         data = json.dumps({ 
@@ -2236,13 +2191,11 @@ class zabbix_api:
             output.append(["hostname","trigger","time","prevvalue"])
             for trigger in response['result']:
                 output.append([trigger["hosts"][0]["name"],trigger["description"],time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(float(trigger["lastchange"]))),trigger["items"][0]["prevvalue"]+trigger["items"][0]["units"]])
-            self.__generate_output(output)
+            self.generate_output(output)
             return 0
-    def __event_get(self, triggerid='',time_from='',time_till='',value=""): 
-        '''
-        The method allows to retrieve events according to the given parameters.
-        用于可用性报表使用
-        '''
+
+    
+    def event_get(self, triggerid='',time_from='',time_till='',value=""): 
         if value:
             data = json.dumps({ 
                                "jsonrpc":"2.0", 
@@ -2285,6 +2238,7 @@ class zabbix_api:
             # 如果输出值为0时，可用性为100%
             if len(response['result']) == 0:
                 return 0
+            
             # 当输出的value 包含0值时
             if not value:
                 # 当输出只有1个值时，可用性为100%
@@ -2326,11 +2280,7 @@ class zabbix_api:
             else:
                 # 表示包含值为1的事件
                 return 1
-    def __generate_output(self,output_list):
-        '''
-        内部函数
-        输出格式化结果
-        '''
+    def generate_output(self,output_list):
         if self.output:
             if self.terminal_table:
                 table=SingleTable(output_list)
@@ -2344,8 +2294,33 @@ class zabbix_api:
             
 if __name__ == "__main__":
     print( __version__)
-    parser=argparse.ArgumentParser(usage='\033[43;37mpython %(prog)s function param [options]\033[0m')
+    parser=argparse.ArgumentParser(description='zabbix  api ',usage='%(prog)s [options]')
    
+    #####################################
+    parser_host = parser.add_argument_group('host')
+    parser_host.add_argument('--group',nargs='?',metavar=('GroupName'),dest='listgroup',default='group',help='查询主机组')
+    parser_host.add_argument('--hostgroup_add',
+                        nargs=1,
+                        metavar=('GroupName'),
+                        dest='hostgroup_add',
+                        help='添加主机组')
+    parser_host.add_argument('--host',
+                             nargs='?',
+                             metavar=('HostName'),
+                             dest='listhost',
+                             default='host',
+                             help='查询主机')
+    parser_host.add_argument('--add-host',
+                        dest='addhost',
+                        nargs=4,
+                        metavar=('192.168.2.1',
+                                 'hostname_ceshi1', 
+                                 'test01,test02', 
+                                 'Template01,Template02'),
+                        help='添加主机,多个主机组或模板使用分号')
+    parser_host.add_argument('--disable',dest='disablehost',nargs=1,metavar=('hostname'),help='禁用主机')
+    parser_host.add_argument('--delete',dest='deletehost',nargs=1,metavar=('hostnames'),help='删除主机,多个主机之间用分号')
+    
     #####################################
     parser_report = parser.add_argument_group('report')
     parser_report.add_argument('--report',
@@ -2368,6 +2343,111 @@ if __name__ == "__main__":
                         metavar=('date_from','date_till'),
                         dest='report_flow',
                         help='eg: "2016-06-03 00:00:00" "2016-06-10 00:00:00"')
+    # template
+    #####################################
+    parser_template = parser.add_argument_group('template')
+    parser_template.add_argument('--template',
+                        nargs='?',
+                        metavar=('TemplateName'),
+                        dest='listtemp',
+                        default='template',
+                        help='查询模板信息')
+    parser_template.add_argument('--template_import',
+                        dest='template_import',
+                        nargs=1,metavar=('templatePath'),
+                        help='import template')
+    # user
+    #####################################
+    parser_user = parser.add_argument_group('user')
+    parser_user.add_argument('--usergroup',
+                        nargs='?',
+                        metavar=('name'),
+                        default='usergroup',
+                        dest='usergroup',
+                        help='Inquire usergroup ID')
+    parser_user.add_argument('--usergroup_add',
+                        dest='usergroup_add',
+                        nargs=2,
+                        metavar=('usergroupName','hostgroupName'),
+                        help='add usergroup')
+    parser_user.add_argument('--usergroup_del',
+                        dest='usergroup_del',
+                        nargs=1,
+                        metavar=('usergroupName'),
+                        help='delete usergroup')
+    parser_user.add_argument('--user',
+                        nargs='?',
+                        metavar=('name'),
+                        default='user',
+                        dest='user',
+                        help='Inquire user ID')
+    parser_user.add_argument('--user_add',
+                        dest='user_add',
+                        nargs=5,
+                        metavar=("userName","userPassword","usergroupName","mediaName","email"),
+                        help='add user')
+    # mediatype
+    #####################################
+    parser_media = parser.add_argument_group('media')
+    parser_media.add_argument('--mediatype',
+                        nargs='?',
+                        metavar=('name'),
+                        default='mediatype',
+                        dest='mediatype',
+                        help='Inquire mediatype')
+    parser_media.add_argument('--mediatype_add',
+                        dest='mediatype_add',
+                        nargs=2,
+                        metavar=('mediaName','scriptName'),
+                        help='add mediatype script')
+    parser_media.add_argument('--mediatype_del',
+                        dest='mediatype_del',
+                        nargs=1,
+                        metavar=('mediatypeName'),
+                        help='delete mediatype')
+    # drule
+    #####################################
+    parser_drule = parser.add_argument_group('drule')
+    parser_drule.add_argument('--drule',
+                        nargs='?',
+                        metavar=('name'),
+                        default='drule',
+                        dest='drule',\
+                        help='Inquire drule')
+    parser_drule.add_argument('--drule_add',
+                        dest='drule_add',
+                        nargs=2,
+                        metavar=('druleName','iprange'),\
+                        help='add drule')
+    parser_drule.add_argument('--drule_del',
+                        dest='drule_del',
+                        nargs=1,
+                        metavar=('druleName'),
+                        help='delete drule')
+    # action
+    #####################################
+    parser_action = parser.add_argument_group('action')
+    parser_action.add_argument('--action',
+                        nargs='?',
+                        metavar=('name'),
+                        default='action',
+                        dest='action',
+                        help='Inquire action')
+    parser_action.add_argument('--action_discovery_add',
+                        dest='action_discovery_add',
+                        nargs=2,
+                        metavar=('actionName','hostgroupName'),\
+                        help='add action')
+    parser_action.add_argument('--action_autoreg_add',
+                        dest='action_autoreg_add',
+                        nargs=2,
+                        metavar=('actionName','hostgroupName'),\
+                        help='add action')
+    parser_action.add_argument('--action_trigger_add',
+                        dest='action_trigger_add',
+                        nargs=1,
+                        metavar=('actionName'),\
+                        help='add action')
 
     # specialhost_get
     #####################################
@@ -2399,17 +2479,30 @@ if __name__ == "__main__":
     parser_output.add_argument('--sort',nargs=1,metavar=('num'),dest='output_sort',default="OFF",help='设置第几列进行排序')
     parser_output.add_argument('--desc',dest='sort_reverse',default="OFF",help='排序设置为降序',action="store_true")
     
+    parser.add_argument('--mysql',dest='mysql_quota',help='mysql使用空间',action="store_true")
+    parser.add_argument('-v', action='version', version=__version__)
+    parser.add_argument('--item',nargs='+',metavar=('HostID','item_name'),dest='listitem',help='查询item')
+    parser.add_argument('--history',
+                        nargs=3,
+                        metavar=('item_id','time_from','time_till'),
+                        dest='history',
+                        help='eg:23298 "2016-06-03 00:00:00" "2016-06-10 00:00:00"')
     parser.add_argument('-d',dest='debug_output',default="OFF",help='show the debug info',action="store_true")
+    # issues
+    parser_issues = parser.add_argument_group('issues')
+    parser_issues.add_argument('--issues',dest='issues',help='查询最近问题',action="store_true")
+    # alert
+    # parser.add_argument('--alert',dest='alert_get',help='show the alert',action="store_true")
     
 
     #######################################################################################################
     if len(sys.argv)==1:
-        from pydoc import render_doc
-        print(render_doc(zabbix_api))
+        #from pydoc import render_doc
+        #print(render_doc(zabbix_api))
         print(parser.print_help())
     else:
-        #args=parser.parse_args()
-        args, unknown_args = parser.parse_known_args()
+        args=parser.parse_args()
+        
         # 默认为普通输出格式
         terminal_table = False
         if args.terminal_table != "OFF":
@@ -2451,31 +2544,8 @@ if __name__ == "__main__":
             profile = "zabbixserver"
 
         zabbix=zabbix_api(terminal_table,debug,output_sort=output_sort,sort_reverse=sort_reverse,profile = profile)
-        #print(args)
-        #print(unknown_args)
-        if unknown_args:
-            func = unknown_args.pop(0)
-            try:
-                cmd = getattr(zabbix, func)
-            except:
-                print('No such function: %s' % func)
-                print(render_doc(zabbix))
-                exit()
-
-            try:
-                kwargs = {}
-                func_args = []
-                for arg in unknown_args:
-                    if '=' in arg:
-                        key, value = arg.split('=', 1)
-                        kwargs[key] = value
-                    else:
-                        func_args.append(arg)
-                func_args = tuple(func_args)
-                function_result = cmd(*func_args, **kwargs)
-            except TypeError:
-                print(render_doc(cmd))
-                exit()
+        if args.mysql_quota:
+            zabbix.mysql_quota()
         export_xls = {"xls":"OFF",
                       "xls_name":"ceshi.xls",
                       "title":"OFF",
@@ -2516,15 +2586,136 @@ if __name__ == "__main__":
             select_condition["hostgroupID"]=args.hostgroupid[0]
         if args.hostid:
             select_condition["hostID"] = args.hostid[0]
-        ############
-        # report
-        ############
+        if args.hostgroupid:
+            select_condition["hostgroupID"]=args.hostgroupid[0]
+        if args.hostid:
+            select_condition["hostID"] = args.hostid[0]
 
+        if args.listhost != 'host' :
+            if args.listhost:
+                zabbix.host_get(args.listhost)
+            else:
+                zabbix.host_get()
+        if args.listgroup !='group':
+            if args.listgroup:
+                zabbix.hostgroup_get(args.listgroup)
+            else:
+                zabbix.hostgroup_get()
+        if args.usergroup != 'usergroup':
+            if args.usergroup:
+                zabbix.usergroup_get(args.usergroup)
+            else:
+                zabbix.usergroup_get()
+        if args.mediatype != 'mediatype':
+            if args.mediatype:
+                zabbix.mediatype_get(args.mediatype)
+            else:
+                zabbix.mediatype_get()
+        if args.listitem:
+            if len(args.listitem) == 1:
+                zabbix.item_get(args.listitem[0])
+            else:
+                zabbix.item_get(args.listitem[0],args.listitem[1])
+        if args.history:
+            zabbix.history(args.history[0],args.history[1],args.history[2])
         if args.report:
-            zabbix._report(args.report[0],args.report[1],args.report[2],export_xls,select_condition)
+            zabbix.report(args.report[0],args.report[1],args.report[2],export_xls,select_condition)
         if args.report_flow:
-            zabbix._report_flow(args.report_flow[0],args.report_flow[1],export_xls,hosts_file)
+            zabbix.report_flow(args.report_flow[0],args.report_flow[1],export_xls,hosts_file)
         if args.report_available:
-            zabbix._report_available(args.report_available[0],args.report_available[1],args.report_available[2],export_xls,select_condition,value_type)
+            zabbix.report_available(args.report_available[0],args.report_available[1],args.report_available[2],export_xls,select_condition,value_type)
         if args.report_available2:
-            zabbix._report_available2(args.report_available2[0],args.report_available2[1],export_xls,select_condition,itemkey_list=itemkey_list)
+            zabbix.report_available2(args.report_available2[0],args.report_available2[1],export_xls,select_condition,itemkey_list=itemkey_list)
+        if args.hostgroup_add:
+            zabbix.hostgroup_create(args.hostgroup_add[0])
+        if args.addhost:
+            zabbix.host_create(args.addhost[0], args.addhost[1], args.addhost[2],args.addhost[3])
+        ############
+        # drule
+        ############
+        if args.drule != 'drule':
+            if args.drule:
+                zabbix.drule_get(args.drule)
+            else:
+                zabbix.drule_get()
+        if args.drule_add:
+            zabbix.drule_create(args.drule_add[0],\
+                               args.drule_add[1]\
+                              )
+        ############
+        # action
+        ############
+        if args.action != 'action':
+            if args.action:
+                zabbix.action_get(args.action)
+            else:
+                zabbix.action_get()
+        if args.action_discovery_add:
+            zabbix.action_discovery_create(args.action_discovery_add[0],\
+                                           args.action_discovery_add[1]\
+                              )
+        if args.action_autoreg_add:
+            zabbix.action_autoreg_create(args.action_autoreg_add[0],\
+                                        args.action_autoreg_add[1]\
+                              )
+        if args.action_trigger_add:
+            zabbix.action_trigger_create(args.action_trigger_add[0]\
+                              )
+        ############
+        # template
+        ############
+        if args.listtemp != 'template':
+            if args.listtemp:
+                zabbix.template_get(args.listtemp)
+            else:
+                zabbix.template_get()
+        if args.template_import:
+            with open(args.template_import[0], 'r') as f:
+                template = f.read()
+                try:
+                    zabbix.configuration_import(template)
+                except ZabbixAPIException as e:
+                    print(e)
+        ############
+        # user
+        ############
+        if args.user != 'user':
+            if args.user:
+                zabbix.user_get(args.user)
+            else:
+                zabbix.user_get()
+        if args.user_add:
+            zabbix.user_create(args.user_add[0],\
+                               args.user_add[1],\
+                               args.user_add[2],\
+                               args.user_add[3],\
+                               args.user_add[4]
+                              )
+        ############
+        # usergroup
+        ############
+        if args.usergroup_add:
+            zabbix.usergroup_create(args.usergroup_add[0], args.usergroup_add[1])
+        if args.usergroup_del:
+            zabbix.usergroup_del(args.usergroup_del[0])
+        ############
+        # usergroup
+        ############
+        if args.mediatype_add:
+            zabbix.mediatype_create(args.mediatype_add[0], args.mediatype_add[1])
+        if args.mediatype_del:
+            zabbix.mediatype_del(args.mediatype_del[0])
+        if args.disablehost:
+            zabbix.host_disable(args.disablehost)
+        if args.deletehost:
+            zabbix.host_delete(args.deletehost[0])
+        ############
+        # issues
+        ############
+        if args.issues:
+                zabbix.triggers_get()
+        ############
+        # alert
+        ############
+        #if args.alert_get:
+        #    zabbix.alert_get()

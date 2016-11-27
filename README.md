@@ -12,6 +12,7 @@
 > * zabbix常用模板---------------------------------------------[zabbix_templates](https://github.com/BillWang139967/zabbix_templates)
 > * 导出报表工具-----------------------------------------------[XLSWriter](https://github.com/BillWang139967/XLSWriter)
 > * linux终端表格----------------------------------------------[linux_terminal](https://github.com/BillWang139967/linux_terminal)
+> * shell菜单工具----------------------------------------------[shell_menu](https://github.com/BillWang139967/shell_menu)
 
 ## 相关知识点
 
@@ -35,6 +36,8 @@ Daily we need to export the report, use zabbix manager can export xls file using
 
 ## version
 ----
+* V1.2
+    * v1.2.0，2016-11-27 修改 zabbix_api.py 调用方式(报表类函数不变)
 * V1.1
     * v1.1.7，2016-11-25 优化程序
     * v1.1.6，2016-11-08 add profile,可以通过 profile 参数选择配置文件中不同的 section

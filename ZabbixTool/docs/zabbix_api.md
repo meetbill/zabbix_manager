@@ -13,5 +13,7 @@ zabbix
 
 ###帮助信息
 	直接执行 python zabbix_api.py
+
+    执行方法 python zabbix_api.py host_get 
 ###参考：
 1.[zabbix 官方api](https://www.zabbix.com/documentation/3.0/manual/appendix/api/api)

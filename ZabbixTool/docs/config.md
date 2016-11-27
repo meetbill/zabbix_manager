@@ -1,41 +1,23 @@
 # agent自动加入监控
 
 * [1 zabbix自动发现配置](#1-zabbix自动发现配置)
-	* [(1)修改配置文件zabbix_config.ini](#1修改配置文件zabbix_configini)
-	* [(2)创建自动发现规则](#2创建自动发现规则)
 * [2 zabbix客户端自动注册(推荐)](#2-zabbix客户端自动注册推荐)
 
 ## 1 zabbix自动发现配置
 
-### (1)修改配置文件zabbix_config.ini
 
-第一步是修改配置文件zabbix_config.ini 
+第一步是修改配置文件lib_zabbix/zabbix_config.ini 
 
 主要是修改zabbix的ip、端口、admin账户、admin密码
 
-然后修改scripts/config/config.sh程序
-
 ```bash
 #!/bin/bash
-
-info_echo(){
-    echo -e "\033[42;37m[Info]: $1 \033[0m"
-}
-
-info_echo "create rule"
-python ./lib_zabbix/zabbix_api.py  --drule_add "agent discovery" "192.168.199.1-252"
-info_echo "create action_discovery"
-python ./lib_zabbix/zabbix_api.py  --action_discovery_add "Auto discovery" store
+python ./lib_zabbix/zabbix_api.py  drule_create "agent discovery" "192.168.199.1-252"
+python ./lib_zabbix/zabbix_api.py  action_discovery_create "Auto discovery" store
 ``` 
-### (2)创建自动发现规则
-
 自动发现规则是zabbix server去扫描一个网段，把在线的主机添加到Host列表中。适合内网下
 
 直接执行在本目录执行 
-
-```bash
-sh scripts/config/config.sh
-```
 直接执行程序后，会执行操作如下
 
 (1)创建自动发现规则
@@ -65,3 +47,8 @@ HostMetadataItem=system.uname
 直接执行python main.py即可
 
 执行后需要输入action_name和hostgroup_name
+
+```
+#!/bin/bash
+python ./lib_zabbix/zabbix_api.py  action_autoreg_create "ceshi_action" "Linux servers"
+```

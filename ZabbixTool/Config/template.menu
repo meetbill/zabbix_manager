@@ -1,2 +1,0 @@
-template_all%./lib_zabbix/zabbix_api.py --template
-template_import_ceishi%sh ./scripts/template/template_import.sh

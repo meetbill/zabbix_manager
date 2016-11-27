@@ -31,7 +31,7 @@ password = zabbix
 
 (1)list hostgroups
 ```bash
-#python zabbix_api.py --group --table
+#python zabbix_api.py hostgroup_get --table
 ----------------------------------------------以下为程序输出
 +-------------+------------------+
 | hostgroupID | hostgroupName    |
@@ -47,14 +47,14 @@ password = zabbix
 ```
 (2)add a hostgroup
 ```bash
-# python zabbix_api.py --hostgroup_add "ceshi"
+# python zabbix_api.py hostgroup_create "ceshi"
 ----------------------------------------------以下为程序输出
 添加主机组:ceshi  hostgroupID : [u'11']
 ```
 ## usergroups 管理
 (1)list usergroups
 ```bash
-#python zabbix_api.py --usergroup --table
+#python zabbix_api.py usergroup_get --table
 ----------------------------------------------以下为程序输出
 +----------+---------------------------+------------+--------------+
 | usrgrpid | name                      | gui_access | users_status |
@@ -68,22 +68,22 @@ password = zabbix
 ```
 (2)add a usergroup
 ```bash
-# python zabbix_api.py --usergroup_add "op" "HostgroupName"
+# python zabbix_api.py usergroup_create "op" "HostgroupName"
 ```
 ## host 管理
 (1)list hosts
 ```bash
-#python zabbix_api.py --host --table
+#python zabbix_api.py host_get --table
 ```
 ## mediatype 管理
 (1)list mediatype
 ```bash
-#python zabbix_api.py --mediatype --table
+#python zabbix_api.py mediatype_get --table
 ```
 
 (2)add a mediatype
 ```bash
-# python zabbix_api.py --mediatype_add mediaName scriptName
+# python zabbix_api.py --mediatype_create mediaName scriptName
 ```
 
 (3)delete a mediatype
@@ -93,7 +93,7 @@ password = zabbix
 ## issues 管理
 可以直接看到最近问题
 ```bash
-#python zabbix_api.py --issues --table
+#python zabbix_api.py issues --table
 ----------------------------------------------以下为程序输出
 分别为[主机名]--[触发器名称]--[触发时间]--[最新值]
 +----------+----------------------------------------------+---------------------+-----------+
