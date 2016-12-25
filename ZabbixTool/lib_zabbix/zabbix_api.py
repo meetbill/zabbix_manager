@@ -1902,13 +1902,13 @@ class zabbix_api:
                                },
                                "operations": [
                                     {
-                                        "operationtype": 2,
+                                        "operationtype": 2,# add host
                                         "esc_step_from": 1,
                                         "esc_period": 0,
                                         "esc_step_to": 1
                                     },
                                     {
-                                        "operationtype": 4,
+                                        "operationtype": 4,# add to host group
                                         "esc_step_from": 2,
                                         "esc_period": 0,
                                         "opgroup": [
@@ -1919,7 +1919,7 @@ class zabbix_api:
                                         "esc_step_to": 2
                                     },
                                     {
-                                        "operationtype": 6,
+                                        "operationtype": 6, # link to template
                                         "esc_step_from": 3,
                                         "esc_period": 0,
                                         "optemplate": [
@@ -1952,15 +1952,29 @@ class zabbix_api:
             if self.output:
                 print(json.dumps(output_print))
             return json.dumps(output_print)
-    def action_trigger_create(self, actionName): 
+    def action_trigger_create(self, actionName,usergroupName,mediatypeName): 
         '''
         create trigger action
-        [eg1]./zabbix_api.py action_trigger_create "ceshi_trigger_action"
+        [eg1]./zabbix_api.py action_trigger_create "ceshi_trigger_action" "op" "alerts"
         '''
         if self.action_get(actionName):
             output_print={}
             output_print["status"]="ERR"
             output_print["output"]="this druleName is exists"
+            if self.output:
+                print(json.dumps(output_print))
+            return json.dumps(output_print)
+        if not self.mediatype_get(mediatypeName):
+            output_print={}
+            output_print["status"]="ERR"
+            output_print["output"]="this mediatype is not exists"
+            if self.output:
+                print(json.dumps(output_print))
+            return json.dumps(output_print)
+        if not self.usergroup_get(usergroupName):
+            output_print={}
+            output_print["status"]="ERR"
+            output_print["output"]="this usergroup is not exists"
             if self.output:
                 print(json.dumps(output_print))
             return json.dumps(output_print)
@@ -1976,11 +1990,19 @@ class zabbix_api:
                 "def_longdata": "{TRIGGER.NAME}: {TRIGGER.STATUS}\r\nLast value: \r\n\r\n1. {ITEM.NAME1} ({HOST.NAME1}:{ITEM.KEY1}): {ITEM.VALUE1}",
                 "filter": {
                     "evaltype": 0,
+                    "formula": "A and B",
                     "conditions": [
+                        {
+                            "conditiontype": 16,  # maintenance status.
+                            "operator": 7,  # not in
+                            "value": "",
+                            "formulaid": "A"
+                        },
                         {
                             "conditiontype": 5,
                             "operator": 0,
-                            "value": 1
+                            "value": 1,
+                            "formulaid": "B"
                         }
                     ]
                 },
@@ -1993,12 +2015,12 @@ class zabbix_api:
                         "evaltype": 0,
                         "opmessage_grp": [
                             {
-                                "usrgrpid": "7"
+                                "usrgrpid": self.usergroup_get(usergroupName)
                             }
                         ],
                         "opmessage": {
                             "default_msg": 1,
-                            "mediatypeid": "1"
+                            "mediatypeid": self.mediatype_get(mediatypeName)
                         }
                     }
                 ]

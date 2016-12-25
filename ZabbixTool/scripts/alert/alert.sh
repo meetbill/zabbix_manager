@@ -6,16 +6,8 @@
 #########################################################################
 #!/bin/bash
 
-info_echo(){
-    echo -e "\033[42;37m[Info]: $1 \033[0m"
-}
-
-info_echo "create mediatype script alerts.py"
-python ./lib_zabbix/zabbix_api.py --mediatype_add alerts alerts.py
-info_echo "create hostgroup 'store'"
-python ./lib_zabbix/zabbix_api.py --hostgroup_add store
-info_echo "create usergroup op"
-python ./lib_zabbix/zabbix_api.py --usergroup_add op store
-info_echo "create user op"
-python ./lib_zabbix/zabbix_api.py --user_add op 123456 op alerts "ceshi@qq.com"
-
+python ./lib_zabbix/zabbix_api.py  action_autoreg_create "ceshi_action" "Linux servers"
+python ./lib_zabbix/zabbix_api.py mediatype_create alerts alerts.py
+python ./lib_zabbix/zabbix_api.py usergroup_create "op_group" "Linux servers"
+python ./lib_zabbix/zabbix_api.py user_create op 123456 "op_group" alerts "ceshi@qq.com"
+python ./lib_zabbix/zabbix_api.py action_trigger_create "trigger_action" "op_group" "alerts"
