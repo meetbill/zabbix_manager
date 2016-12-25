@@ -37,6 +37,7 @@ Daily we need to export the report, use zabbix manager can export xls file using
 ## version
 ----
 * V1.2
+    * v1.2.1，2016-12-25 增加对主机批量 link 、clear 模板操作
     * v1.2.0，2016-11-27 修改 zabbix_api.py 调用方式(报表类函数不变)
 * V1.1
     * v1.1.7，2016-11-25 优化程序

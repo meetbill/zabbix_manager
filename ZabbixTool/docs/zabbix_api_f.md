@@ -1,6 +1,6 @@
 # zabbix_manager api 手册
 
-以下方法只是 zabbix_api 的冰山一角，详情可以直接使用zabbix_api
+以下方法只是 zabbix_api 的冰山一角，详情可以直接#python zabbix_api.py 获取 zabbix_api 使用方法
 
 * [使用方法](#使用方法)
 * [zabbix api 功能](#zabbix-api-功能)
@@ -29,7 +29,8 @@ password = zabbix
 # zabbix api 功能
 ## hostgroups 管理
 
-(1)list hostgroups
+**list hostgroups**
+
 ```bash
 #python zabbix_api.py hostgroup_get --table
 ----------------------------------------------以下为程序输出
@@ -45,14 +46,17 @@ password = zabbix
 +-------------+------------------+
 
 ```
-(2)add a hostgroup
+**add a hostgroup**
+
 ```bash
 # python zabbix_api.py hostgroup_create "ceshi"
 ----------------------------------------------以下为程序输出
 添加主机组:ceshi  hostgroupID : [u'11']
 ```
 ## usergroups 管理
-(1)list usergroups
+
+**list usergroups**
+
 ```bash
 #python zabbix_api.py usergroup_get --table
 ----------------------------------------------以下为程序输出
@@ -66,32 +70,59 @@ password = zabbix
 | 12       | No access to the frontend | 2          | 0            |
 +----------+---------------------------+------------+--------------+
 ```
-(2)add a usergroup
+**add a usergroup**
+
 ```bash
 # python zabbix_api.py usergroup_create "op" "HostgroupName"
 ```
 ## host 管理
-(1)list hosts
+
+**list hosts**
+
 ```bash
 #python zabbix_api.py host_get --table
-```
+``` 
+**批量对主机进行 clear 指定模板**
+
+```bash
+#python zabbix_api.py hosts_template_clear 10001
+or
+#python zabbix_api.py hosts_template_clear "Template OS Linux"
+``` 
+注:可以使用--hostgroupid，--hostid两个选项进行对特定主机或者主机组进行 clear 模板操作
+
+**批量对主机进行 link 指定模板**
+
+```bash
+#python zabbix_api.py hosts_template_link 10001
+or
+#python zabbix_api.py hosts_template_link "Template OS Linux"
+``` 
+注:可以使用--hostgroupid，--hostid两个选项进行对特定主机或者主机组进行 link 模板操作
+
 ## mediatype 管理
-(1)list mediatype
+
+**list mediatype**
+
 ```bash
 #python zabbix_api.py mediatype_get --table
 ```
 
-(2)add a mediatype
+**add a mediatype**
+
 ```bash
-# python zabbix_api.py --mediatype_create mediaName scriptName
+# python zabbix_api.py mediatype_create mediaName scriptName
 ```
 
-(3)delete a mediatype
+**delete a mediatype**
+
 ```bash
-# python zabbix_api.py --mediatype_del mediaName
+# python zabbix_api.py mediatype_del mediaName
 ```
 ## issues 管理
-可以直接看到最近问题
+
+**查看最近问题**
+
 ```bash
 #python zabbix_api.py issues --table
 ----------------------------------------------以下为程序输出

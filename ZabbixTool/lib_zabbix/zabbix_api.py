@@ -1,7 +1,9 @@
 #!/usr/bin/python 
 #coding:utf-8 
+#
+# {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.0"
+__version__ = "1.2.1"
  
 import json 
 import urllib2 
@@ -13,6 +15,7 @@ import time
 import unicodedata
 import config
 from pydoc import render_doc
+from w_lib.zabbix_api_lib import ZabbixAPI
 
 root_path = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(root_path)
@@ -54,6 +57,10 @@ class zabbix_api:
             self.port = config.get(profile, "port")
             self.user = config.get(profile, "user")
             self.password = config.get(profile, "password")
+            self.zapi=ZabbixAPI(server="http://%s:%s"%(self.server,self.port))
+            self.zapi.login(self.user,self.password)
+            self.__host_id__ = ''
+            self.__hostgroup_id__ = ''
         else:
             print("the config file is not exist")
             exit(1)
@@ -95,47 +102,25 @@ class zabbix_api:
         [eg1]./zabbix_api.py host_get
         [eg2]./zabbix_api host_get "Zabbix server"
         '''
-        data=json.dumps({
-                "jsonrpc": "2.0",
-                "method": "host.get",
-                "params": {
-                          "output": ["hostid","host","name","status","available"],
-                          "filter":{"name":hostName},
-                          "selectInterfaces":["ip"]
-                          },
-                "auth": self.authID,
-                "id": 1
-                })
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            if hasattr(e, 'reason'): 
-                print('We failed to reach a server.' )
-                print('Reason: ', e.reason) 
-            elif hasattr(e, 'code'): 
-                print('The server could not fulfill the request.')
-                print('Error code: ', e.code)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                return 0
-            output = []
-            output.append(["HostID","HostName","ip","Status","Available"])
-            for host in response['result']:      
-                status={"0":"OK","1":"Disabled"}
-                available={"0":"Unknown","1":Color('{autobggreen}available{/autobggreen}'),"2":Color('{autobgred}Unavailable{/autobgred}')}
-                if len(hostName)==0:
-                    output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
-                else:
-                    output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
-                    self.__generate_output(output)
-                    return host['hostid']
-            self.__generate_output(output)
+        output = []
+        output.append(["HostID","HostName","ip","Status","Available"])
+        response=self.zapi.host.get({
+                      "output": ["hostid","host","name","status","available"],
+                      "filter":{"name":hostName},
+                      "selectInterfaces":["ip"]})
+        if len(response) == 0:
             return 0
+        for host in response:      
+            status={"0":"OK","1":"Disabled"}
+            available={"0":"Unknown","1":Color('{autobggreen}available{/autobggreen}'),"2":Color('{autobgred}Unavailable{/autobgred}')}
+            if len(hostName)==0:
+                output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
+            else:
+                output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
+                self.__generate_output(output)
+                return host['hostid']
+        self.__generate_output(output)
+        return 0
     def __host_get(self,hostgroupID='',hostID=''): 
         '''
         内部函数
@@ -209,6 +194,33 @@ class zabbix_api:
             for host in response['result']:      
                 all_host_list.append((host['hostid'],host['host'],host['name'],host['interfaces'][0]["ip"]))
             return all_host_list
+    def _hosts_get(self):
+        '''
+        获取特定条件下的主机列表
+        '''
+        if self.__hostgroup_id__ or self.__host_id__:
+            host_list_g=[]
+            host_list_h=[]
+            if self.__hostgroup_id__:
+                host_list_g=self.__host_get(hostgroupID=self.__hostgroup_id__)
+            if self.__host_id__:
+                host_list_h=self.__host_get(hostID=self.__host_id__)
+            # 将host_list_h的全部元素添加到host_list_g的尾部
+            host_list_g.extend(host_list_h)
+
+            # 去除列表中重复的元素
+            host_list = list(set(host_list_g))
+        else:
+            host_list = self.__host_get()
+        return host_list
+    def _host_set(self,hostgroupID='',hostID=''):
+        '''
+        设置需要输出的主机组或者主机
+        '''
+        if hostgroupID:
+            self.__hostgroup_id__ = hostgroupID
+        if hostID:
+            self.__host_id__ = hostID
     def host_create(self, hostip,hostname,hostgroupName,templateName): 
         '''
         create a host
@@ -226,7 +238,10 @@ class zabbix_api:
             group_list.append(var)
         for i in templateName.split(','):
             var={}
-            var['templateid']=self.template_get(i)
+            templates_info=self.template_get(i)
+            if not len(templates_info):
+                continue
+            var['templateid']=templates_info[0]['templateid']
             template_list.append(var)   
 
         data = json.dumps({ 
@@ -641,22 +656,22 @@ class zabbix_api:
 
 
         # 获取需要输出报表信息的host_list
-        if select_condition["hostgroupID"] or select_condition["hostID"]:
+        if select_condition["hostgroupid"] or select_condition["hostid"]:
             xls_range = self.__get_select_condition_info(select_condition)
                 
             host_list_g=[]
             host_list_h=[]
-            if select_condition["hostgroupID"]:
-                host_list_g=self.__host_get(hostgroupID=select_condition["hostgroupID"])
-            if select_condition["hostID"]:
-                host_list_h=self.__host_get(hostID=select_condition["hostID"])
+            if select_condition["hostgroupid"]:
+                host_list_g=self.__host_get(hostgroupid=select_condition["hostgroupid"])
+            if select_condition["hostid"]:
+                host_list_h=self.__host_get(hostid=select_condition["hostid"])
             # 将host_list_h的全部元素添加到host_list_g的尾部
             host_list_g.extend(host_list_h)
 
             # 去除列表中重复的元素
             host_list = list(set(host_list_g))
         else:
-            xls_range = u"ALL"
+            xls_range = u"all"
             host_list = self.__host_get()
         for host_info in host_list: 
             itemid_all_list = self.item_get(host_info[0],itemName)
@@ -1301,45 +1316,28 @@ class zabbix_api:
             
             return (trend_min,trend_max,trend_avg)
     # template
-    def template_get(self,templateName=''): 
+    def template_get(self,identifier=''): 
         '''
-        get template list
+        Look up a template list by name or ID number
         [eg1]./zabbix_api.py template_get
         [eg2-Internal call]./zabbix_api template_get "Template OS Linux"
+        [eg3-Internal call]./zabbix_api template_get 10001
         '''
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method": "template.get", 
-                           "params": { 
-                                      "output": "extend", 
-                                      "filter": { 
-                                                 "name":templateName                                                        
-                                                 } 
-                                      }, 
-                           "auth":self.authID, 
-                           "id":1, 
-                           })
-         
-        request = urllib2.Request(self.url, data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e )
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
+        if identifier:
+            try:                 
+                int(identifier)  
+                params = {"output":"extend","templateids":[int(identifier)]}
+            except:
+                params = {"output":"extend","filter":{"name":identifier}}
+            return self.zapi.template.get(params)
+        else:
+            params = {"output":"extend"}
+            result = self.zapi.template.get(params)
             output = []
             output[:] = []
             output.append(["id","template"])
-            for template in response['result']:                
-                if len(templateName)==0:
-                    output.append([template['templateid'],template['name']])
-                else:
-                    self.templateID = response['result'][0]['templateid'] 
-                    return response['result'][0]['templateid']
+            for template in result: 
+                output.append([template['templateid'],template['name']])
             self.__generate_output(output)
             return 0
     def configuration_import(self,template): 
@@ -1883,7 +1881,7 @@ class zabbix_api:
                 print(json.dumps(output_print))
             return json.dumps(output_print)
         templateName = "Template OS Linux"
-        templateID=self.template_get(templateName)
+        templateID=self.template_get(templateName)[0]['templateid']
         data = json.dumps({ 
                            "jsonrpc":"2.0", 
                            "method":"action.create", 
@@ -2341,6 +2339,52 @@ class zabbix_api:
                         print("[%s]"%output_sub,end=" ")
                     print()
             print("sum: ",len(output_list[1:]))
+    def hosts_template_clear(self,template):
+        '''
+        clear template
+        [eg1]./zabbix_api.py hosts_template_clear 10001
+        [eg2]./zabbix_api.py hosts_template_clear "Template OS Linux"
+        '''
+        templates_info = self.template_get(template)
+        if not len(templates_info):
+            return {"status":"ERR","output":"Template not found"}
+        print("clear template [%s]..."%templates_info[0]["name"])
+        host_list = self._hosts_get()
+        for host in host_list:
+            self.zapi.host.update({"hostid": host[0],
+                    "templates_clear": [
+                                    {
+                                        "templateid": templates_info[0]["templateid"]
+                                    },
+                    ]})
+            print("host:[%s] ip:[%s] OK"%(host[2],host[3]))
+    def hosts_template_link(self,template):
+        '''
+        link template
+        [eg1]./zabbix_api.py hosts_template_link 10001
+        [eg2]./zabbix_api.py hosts_template_link "Template OS Linux"
+        '''
+        templates_info = self.template_get(template)
+        if not len(templates_info):
+            return {"status":"ERR","output":"Template not found"}
+        print("link template [%s]..."%templates_info[0]["name"])
+        host_list = self._hosts_get()
+        for host in host_list:
+            self.zapi.host.massadd({
+                "hosts":[
+                    {
+                        "hostid": host[0]
+                    }
+                ],
+                
+                "templates": [
+                    {
+                        "templateid":templates_info[0]["templateid"]
+                    }
+                ]
+            })
+            print("host:[%s] ip:[%s] OK"%(host[2],host[3]))
+
             
 if __name__ == "__main__":
     print( __version__)
@@ -2453,29 +2497,6 @@ if __name__ == "__main__":
         zabbix=zabbix_api(terminal_table,debug,output_sort=output_sort,sort_reverse=sort_reverse,profile = profile)
         #print(args)
         #print(unknown_args)
-        if unknown_args:
-            func = unknown_args.pop(0)
-            try:
-                cmd = getattr(zabbix, func)
-            except:
-                print('No such function: %s' % func)
-                print(render_doc(zabbix))
-                exit()
-
-            try:
-                kwargs = {}
-                func_args = []
-                for arg in unknown_args:
-                    if '=' in arg:
-                        key, value = arg.split('=', 1)
-                        kwargs[key] = value
-                    else:
-                        func_args.append(arg)
-                func_args = tuple(func_args)
-                function_result = cmd(*func_args, **kwargs)
-            except TypeError:
-                print(render_doc(cmd))
-                exit()
         export_xls = {"xls":"OFF",
                       "xls_name":"ceshi.xls",
                       "title":"OFF",
@@ -2514,8 +2535,11 @@ if __name__ == "__main__":
         # 选择特定机器
         if args.hostgroupid:
             select_condition["hostgroupID"]=args.hostgroupid[0]
+            zabbix._host_set(hostgroupID=args.hostgroupid[0])
+            
         if args.hostid:
             select_condition["hostID"] = args.hostid[0]
+            zabbix._host_set(hostID=args.hostid[0])
         ############
         # report
         ############
@@ -2528,3 +2552,28 @@ if __name__ == "__main__":
             zabbix._report_available(args.report_available[0],args.report_available[1],args.report_available[2],export_xls,select_condition,value_type)
         if args.report_available2:
             zabbix._report_available2(args.report_available2[0],args.report_available2[1],export_xls,select_condition,itemkey_list=itemkey_list)
+        
+        
+        if unknown_args:
+            func = unknown_args.pop(0)
+            try:
+                cmd = getattr(zabbix, func)
+            except:
+                print('No such function: %s' % func)
+                print(render_doc(zabbix))
+                exit()
+
+            try:
+                kwargs = {}
+                func_args = []
+                for arg in unknown_args:
+                    if '=' in arg:
+                        key, value = arg.split('=', 1)
+                        kwargs[key] = value
+                    else:
+                        func_args.append(arg)
+                func_args = tuple(func_args)
+                function_result = cmd(*func_args, **kwargs)
+            except TypeError:
+                print(render_doc(cmd))
+                exit()
