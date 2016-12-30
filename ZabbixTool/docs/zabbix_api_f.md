@@ -15,12 +15,10 @@
 
 修改配置文件
 
-第一步是修改配置文件zabbix_config.ini 
+第一步是修改配置文件`/etc/zabbix_tool/zabbix_config.ini`
 
 主要是修改zabbix的ip、端口、admin账户、admin密码
 ```bash
-$ cat zabbix_config.ini
-
 [zabbixserver]
 server = 192.168.199.128
 port = 80
@@ -33,7 +31,7 @@ password = zabbix
 **list hostgroups**
 
 ```bash
-#python zabbix_api.py hostgroup_get --table
+#zabbix_api hostgroup_get --table
 ----------------------------------------------以下为程序输出
 +-------------+------------------+
 | hostgroupID | hostgroupName    |
@@ -50,7 +48,7 @@ password = zabbix
 **add a hostgroup**
 
 ```bash
-# python zabbix_api.py hostgroup_create "ceshi"
+#zabbix_api hostgroup_create "ceshi"
 ----------------------------------------------以下为程序输出
 添加主机组:ceshi  hostgroupID : [u'11']
 ```
@@ -59,7 +57,7 @@ password = zabbix
 **list usergroups**
 
 ```bash
-#python zabbix_api.py usergroup_get --table
+#zabbix_api usergroup_get --table
 ----------------------------------------------以下为程序输出
 +----------+---------------------------+------------+--------------+
 | usrgrpid | name                      | gui_access | users_status |
@@ -74,30 +72,30 @@ password = zabbix
 **add a usergroup**
 
 ```bash
-# python zabbix_api.py usergroup_create "op" "HostgroupName"
+#zabbix_api usergroup_create "op" "HostgroupName"
 ```
 ## host 管理
 
 **list hosts**
 
 ```bash
-#python zabbix_api.py host_get --table
+#zabbix_api host_get --table
 ``` 
 **批量对主机进行 clear 指定模板**
 
 ```bash
-#python zabbix_api.py hosts_template_clear 10001
+#zabbix_api hosts_template_clear 10001
 or
-#python zabbix_api.py hosts_template_clear "Template OS Linux"
+#zabbix_api hosts_template_clear "Template OS Linux"
 ``` 
 注:可以使用--hostgroupid，--hostid两个选项进行对特定主机或者主机组进行 clear 模板操作
 
 **批量对主机进行 link 指定模板**
 
 ```bash
-#python zabbix_api.py hosts_template_link 10001
+#zabbix_api hosts_template_link 10001
 or
-#python zabbix_api.py hosts_template_link "Template OS Linux"
+#zabbix_api hosts_template_link "Template OS Linux"
 ``` 
 注:可以使用--hostgroupid，--hostid两个选项进行对特定主机或者主机组进行 link 模板操作
 
@@ -106,26 +104,26 @@ or
 **list mediatype**
 
 ```bash
-#python zabbix_api.py mediatype_get --table
+#zabbix_api mediatype_get --table
 ```
 
 **add a mediatype**
 
 ```bash
-# python zabbix_api.py mediatype_create mediaName scriptName
+#zabbix_api mediatype_create mediaName scriptName
 ```
 
 **delete a mediatype**
 
 ```bash
-# python zabbix_api.py mediatype_del mediaName
+#zabbix_api mediatype_del mediaName
 ```
 ## issues 管理
 
 **查看最近问题**
 
 ```bash
-#python zabbix_api.py issues --table
+#zabbix_api issues --table
 ----------------------------------------------以下为程序输出
 分别为[主机名]--[触发器名称]--[触发时间]--[最新值]
 +----------+----------------------------------------------+---------------------+-----------+
@@ -146,8 +144,8 @@ or
 
 ```bash
 #!/bin/bash
-python ./lib_zabbix/zabbix_api.py  drule_create "agent discovery" "192.168.199.1-252"
-python ./lib_zabbix/zabbix_api.py  action_discovery_create "Auto discovery" store
+zabbix_api drule_create "agent discovery" "192.168.199.1-252"
+zabbix_api  action_discovery_create "Auto discovery" store
 ``` 
 自动发现规则是zabbix server去扫描一个网段，把在线的主机添加到Host列表中。适合内网下
 
@@ -184,5 +182,5 @@ HostMetadataItem=system.uname
 
 ```
 #!/bin/bash
-python ./lib_zabbix/zabbix_api.py  action_autoreg_create "ceshi_action" "Linux servers"
+zabbix_api action_autoreg_create "ceshi_action" "Linux servers"
 ```

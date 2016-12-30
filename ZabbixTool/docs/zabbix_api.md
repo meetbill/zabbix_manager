@@ -12,8 +12,8 @@ zabbix
 		修改自己的url，及user,password,详见zabbix_config.ini
 
 ###帮助信息
-	直接执行 python zabbix_api.py
+	直接执行#zabbix_api
 
-    执行方法 python zabbix_api.py host_get 
+    执行方法#zabbix_api host_get 
 ###参考：
 1.[zabbix 官方api](https://www.zabbix.com/documentation/3.0/manual/appendix/api/api)

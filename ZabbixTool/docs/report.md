@@ -40,7 +40,7 @@ report 包括以下内容
 ### 2.2 服务器可用性报表2
 
 ```
-#python zabbix_api.py  --report_available2 "2016-07-01 00:00:00" "2016-09-01 00:00:00" --hostid 10105 --table
+#zabbix_api --report_available2 "2016-07-01 00:00:00" "2016-09-01 00:00:00" --hostid 10105 --table
 
 其他参数说明
 --item_key itemkey.example   # 选择特定 item 进行输出
@@ -82,16 +82,16 @@ zabbix界面上显示
 
 ```
 直接输出
-#python zabbix_api.py --report item_name date_from date_till
+#zabbix_api --report item_name date_from date_till
 
 以表格形式展示在终端输出
-#python zabbix_api.py --report item_name date_from date_till --table
+#zabbix_api --report item_name date_from date_till --table
 
 以表格形式展示在终端输出,同时将第六列升序输出
-#python zabbix_api.py --report item_name date_from date_till --table --sort 6
+#zabbix_api --report item_name date_from date_till --table --sort 6
 
 以表格形式展示在终端输出,同时将第六列降序输出
-#python zabbix_api.py --report item_name date_from date_till --table --sort 6 --desc
+#zabbix_api --report item_name date_from date_till --table --sort 6 --desc
 ```
 
 输出显示时加--table可以表框显示

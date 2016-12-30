@@ -19,8 +19,8 @@ from w_lib.zabbix_api_lib import ZabbixAPI
 
 root_path = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(root_path)
-zabbix_config = '%s/zabbix_config.ini'%root_path
 sys.path.insert(0, os.path.join(root_path, 'w_lib'))
+zabbix_config = '/etc/zabbix_tool/zabbix_config.ini'
 
 from colorclass import Color
 from terminaltables import SingleTable
@@ -34,12 +34,8 @@ sys.setdefaultencoding("utf-8")
 def err_msg(msg):
     print("\033[41;37m[Error]: %s \033[0m"%msg)
     exit()
-
-  
 def info_msg(msg):
     print("\033[42;37m[Info]: %s \033[0m"%msg)
-
-  
 def warn_msg(msg):
     print("\033[43;37m[Warning]: %s \033[0m"%msg)
 
@@ -47,7 +43,7 @@ class zabbix_api:
     def __init__(self,terminal_table=False,debug=False,output=True,output_sort=False,sort_reverse=False,profile="zabbixserver"): 
         if os.path.exists(zabbix_config):
             config = ConfigParser.ConfigParser()
-            config.read("zabbix_config.ini")
+            config.read(zabbix_config)
             # 是否输出显示
             self.output = output
             # 输出结果第几列排序
@@ -62,7 +58,7 @@ class zabbix_api:
             self.__host_id__ = ''
             self.__hostgroup_id__ = ''
         else:
-            print("the config file is not exist")
+            print("the config file [%s] is not exist"%zabbix_config)
             exit(1)
 
         self.url = 'http://%s:%s/api_jsonrpc.php' % (self.server,self.port) #修改URL
@@ -2574,8 +2570,6 @@ if __name__ == "__main__":
             zabbix._report_available(args.report_available[0],args.report_available[1],args.report_available[2],export_xls,select_condition,value_type)
         if args.report_available2:
             zabbix._report_available2(args.report_available2[0],args.report_available2[1],export_xls,select_condition,itemkey_list=itemkey_list)
-        
-        
         if unknown_args:
             func = unknown_args.pop(0)
             try:

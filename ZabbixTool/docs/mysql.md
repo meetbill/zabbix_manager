@@ -17,5 +17,5 @@ zabbix配置：固定大小，一般<10MB
 ### 3 使用
 
 ```
-python zabbix_api.py mysql_quota
+#zabbix_api mysql_quota
 ```

@@ -8,8 +8,8 @@
 
 ## 【目录】
 ----
-[1 使用zabbix_manage ]  
-........[1.1 main.sh](docs/sh_main.md)  
+[1 安装 ]  
+........[1.1 安装zabbix_manage](docs/install.md)  
 
 [2 直接使用zabbix_api.py ]  
 ........[2.1 zabbix 安装后一键配置](docs/init.md)  
@@ -29,4 +29,5 @@
 
 [6 应用场景 ]  
 ........[6.1 定时发送可用性报表(特定item)](docs/app/send_report1.md)  
+........[6.2 main.sh](docs/sh_main.md)  
 
