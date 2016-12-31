@@ -45,8 +45,6 @@ __logger = logging.getLogger("zabbix_api")
 __logger.addHandler(default_log_handler)
 __logger.log(10, "Starting logging")
 
-#logging.WARNING
-
 try:
     # Separate module or Python <2.6
     import simplejson as json

@@ -29,6 +29,7 @@ import my_compare
 import XLSWriter
 from BLog import Log
 import argparse
+import logging
 reload(sys)
 sys.setdefaultencoding("utf-8")
 def err_msg(msg):
@@ -53,7 +54,10 @@ class zabbix_api:
             self.port = config.get(profile, "port")
             self.user = config.get(profile, "user")
             self.password = config.get(profile, "password")
-            self.zapi=ZabbixAPI(server="http://%s:%s"%(self.server,self.port))
+            if debug:
+                self.zapi=ZabbixAPI(server="http://%s:%s"%(self.server,self.port),log_level=logging.DEBUG)
+            else:
+                self.zapi=ZabbixAPI(server="http://%s:%s"%(self.server,self.port))
             self.zapi.login(self.user,self.password)
             self.__host_id__ = ''
             self.__hostgroup_id__ = ''
@@ -95,14 +99,15 @@ class zabbix_api:
     def host_get(self,hostName=''): 
         '''
         get host
-        [eg1]./zabbix_api.py host_get
-        [eg2]./zabbix_api host_get "Zabbix server"
+        [eg1]#zabbix_api host_get
+        [eg2]#zabbix_api host_get "Zabbix server"
         '''
         output = []
-        output.append(["HostID","HostName","ip","Status","Available"])
+        output.append(["HostID","HostName","ip","Status","Available","templates"])
         response=self.zapi.host.get({
                       "output": ["hostid","host","name","status","available"],
                       "filter":{"name":hostName},
+                      "selectParentTemplates":["host"],
                       "selectInterfaces":["ip"]})
         if len(response) == 0:
             return 0
@@ -110,10 +115,14 @@ class zabbix_api:
             status={"0":"OK","1":"Disabled"}
             available={"0":"Unknown","1":Color('{autobggreen}available{/autobggreen}'),"2":Color('{autobgred}Unavailable{/autobgred}')}
             if len(hostName)==0:
-                output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
+                template = ""
+                if len(host["parentTemplates"]):
+                    for template_item in host["parentTemplates"]:
+                        template =  template_item["host"] + '\n'+ template
+                output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']],template])
             else:
-                output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
-                self.__generate_output(output)
+                #output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
+                #self.__generate_output(output)
                 return host['hostid']
         self.__generate_output(output)
         return 0
@@ -220,12 +229,10 @@ class zabbix_api:
     def host_create(self, hostip,hostname,hostgroupName,templateName): 
         '''
         create a host
-        [eg1]./zabbix_api.py host_create 192.168.199.2 "ceshi_host" "store" "Template OS Linux"
+        [eg1]#zabbix_api host_create 192.168.199.2 "ceshi_host" "store" "Template OS Linux"
         '''
         if self.host_get(hostname):
-            print("\033[041m该主机已经添加!\033[0m")
-            sys.exit(1)
-
+            return self.__generate_return("ERR","host [%s] is exist"%hostname)
         group_list=[]
         template_list=[]
         for i in hostgroupName.split(','):
@@ -272,12 +279,12 @@ class zabbix_api:
         else: 
             response = json.loads(result.read()) 
             result.close() 
-            print("添加主机 : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (hostip, response['result']['hostids'][0]))
+            return self.__generate_return("OK","create host:[%s] hostid:[%s] OK"%(hostname,response['result']['hostids'][0]))
     def host_status(self,hostname,status="Disabled"):
         '''
         Turns a host Enabled or Disabled[default]
-        [eg1]./zabbix_api.py host_status "ceshi_host" "Disabled"
-        [eg2]./zabbix_api.py host_status "ceshi_host" "Enabled"
+        [eg1]#zabbix_api host_status "ceshi_host" "Disabled"
+        [eg2]#zabbix_api host_status "ceshi_host" "Enabled"
         '''
         status_flag={"Enabled":0,"Disabled":1}
         data=json.dumps({
@@ -305,8 +312,8 @@ class zabbix_api:
     def host_delete(self,hostnames):
         '''
         Remove the host
-        [eg1]./zabbix_api.py host_delete "ceshi_host"
-        [eg1]./zabbix_api.py host_delete "ceshi_host1,ceshi_host2"
+        [eg1]#zabbix_api host_delete "ceshi_host"
+        [eg1]#zabbix_api host_delete "ceshi_host1,ceshi_host2"
         '''
         hostid_list=[]
         for i in hostnames.split(','):
@@ -335,8 +342,8 @@ class zabbix_api:
     def hostgroup_get(self, hostgroupName=''): 
         '''
         get hostgroup list
-        [eg1]./zabbix_api.py hostgroup_get
-        [eg1]./zabbix_api.py hostgroup_get "Templates"
+        [eg1]#zabbix_api hostgroup_get
+        [eg1]#zabbix_api hostgroup_get "Templates"
         '''
         data = json.dumps({ 
                            "jsonrpc":"2.0", 
@@ -412,38 +419,21 @@ class zabbix_api:
     def hostgroup_create(self,hostgroupName):
         '''
         create a hostgroup
-        [eg1]./zabbix_api.py hostgroup_create "ceshi_hostgroup"
+        [eg1]#zabbix_api hostgroup_create "ceshi_hostgroup"
         '''
         if self.hostgroup_get(hostgroupName):
-            print("hostgroup  \033[42m%s\033[0m is exist !"%hostgroupName)
-            sys.exit(1)
-        data = json.dumps({
-                          "jsonrpc": "2.0",
-                          "method": "hostgroup.create",
-                          "params": {
-                          "name": hostgroupName
-                          },
-                          "auth":self.authID,
-                          "id": 1
-                          })
-        request=urllib2.Request(self.url,data)
-
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request)
-        except URLError as e: 
-            print("Error as ", e )
-        else: 
-            response = json.loads(result.read()) 
-            result.close()
-            print("\033[042m 添加主机组:%s\033[0m  hostgroupID : %s"%(hostgroupName,response['result']['groupids']))
+            return self.__generate_return("ERR","hostgroup [%s] is exists"%hostgroupName)
+        response=self.zapi.hostgroup.create({
+                      "name": hostgroupName
+                      })
+        if len(response) == 0:
+            return 0
+        return self.__generate_return("OK","create hostgroup [%s] OK"% response['groupids'][0])
     def item_get(self, host_ID,itemName=''): 
         '''
         return a item list
-        [eg1]./zabbix_api.py item_get 10084
-        [eg2]./zabbix_api.py item_get 10084 "Free disk"
+        [eg1]#zabbix_api item_get 10084
+        [eg2]#zabbix_api item_get 10084 "Free disk"
         '''
         # @return list
         # list_format
@@ -532,7 +522,7 @@ class zabbix_api:
     def history(self,item_ID,date_from,date_till): 
         '''
         return history of item
-        [eg1]./zabbix_api.py history 23296 "2016-08-01 00:00:00" "2016-09-01 00:00:00"
+        [eg1]#zabbix_api history 23296 "2016-08-01 00:00:00" "2016-09-01 00:00:00"
         [note]The date_till time must be within the historical data retention time
         '''
         dateFormat = "%Y-%m-%d %H:%M:%S"
@@ -1212,7 +1202,7 @@ class zabbix_api:
     def action_log(self,date_from,date_till):
         '''
         Outputs the action_log for a specific time
-        [eg1]./zabbix_api.py action_log "2016-08-01 00:00:00" "2016-09-01 00:00:00"
+        [eg1]#zabbix_api action_log "2016-08-01 00:00:00" "2016-09-01 00:00:00"
         '''
         dateFormat = "%Y-%m-%d %H:%M:%S"
         try:
@@ -1315,9 +1305,9 @@ class zabbix_api:
     def template_get(self,identifier=''): 
         '''
         Look up a template list by name or ID number
-        [eg1]./zabbix_api.py template_get
-        [eg2-Internal call]./zabbix_api template_get "Template OS Linux"
-        [eg3-Internal call]./zabbix_api template_get 10001
+        [eg1]#zabbix_api template_get
+        [eg2-Internal call]#zabbix_api template_get "Template OS Linux"
+        [eg3-Internal call]#zabbix_api template_get 10001
         '''
         if identifier:
             try:                 
@@ -1418,7 +1408,7 @@ class zabbix_api:
     def user_get(self,userName=''): 
         '''
         get user list
-        [eg1]./zabbix_api.py user_get
+        [eg1]#zabbix_api user_get
         '''
         data=json.dumps({
                 "jsonrpc": "2.0",
@@ -1459,7 +1449,7 @@ class zabbix_api:
     def user_create(self, userName,userPassword,usergroupName,mediaName,email): 
         '''
         create a user
-        [eg1]./zabbix_api.py user_create "ceshi_user" "123456" "ceshi_usergroup" "alerts" "meetbill@163.com"
+        [eg1]#zabbix_api user_create "ceshi_user" "123456" "ceshi_usergroup" "alerts" "meetbill@163.com"
         '''
         if self.user_get(userName):
             print("\033[041mthis userName is exists\033[0m" )
@@ -1506,7 +1496,7 @@ class zabbix_api:
     def usergroup_get(self,usergroupName=''): 
         '''
         return usergroup list
-        [eg1]./zabbix_api.py usergroup_get
+        [eg1]#zabbix_api usergroup_get
         '''
         data=json.dumps({
                 "jsonrpc": "2.0",
@@ -1549,7 +1539,7 @@ class zabbix_api:
     def usergroup_create(self, usergroupName,hostgroupName): 
         '''
         Create a usergroup
-        [eg1]./zabbix_api.py usergroup_create "ceshi_usergroup" "Linux servers"
+        [eg1]#zabbix_api usergroup_create "ceshi_usergroup" "Linux servers"
         '''
         if self.usergroup_get(usergroupName):
             print("\033[041mthis usergroupName is exists\033[0m")
@@ -1584,7 +1574,7 @@ class zabbix_api:
     def usergroup_del(self,usergroupName):
         '''
         Remove a usergroup
-        [eg1]./zabbix_api.py usergroup_del "ceshi_usergroup"
+        [eg1]#zabbix_api usergroup_del "ceshi_usergroup"
         '''
         usergroup_list=[]
         for i in usergroupName.split(','):
@@ -1616,7 +1606,7 @@ class zabbix_api:
     def mediatype_get(self,mediatypeName=''): 
         '''
         return a mediatype list
-        [eg1]./zabbix_api.py mediatype_get
+        [eg1]#zabbix_api mediatype_get
         '''
 
         data=json.dumps({
@@ -1659,7 +1649,7 @@ class zabbix_api:
     def mediatype_create(self, mediatypeName,script_name): 
         '''
         create a mediatype[script]
-        [eg1]./zabbix_api.py mediatype_create "alerts" "alerts.py"
+        [eg1]#zabbix_api mediatype_create "alerts" "alerts.py"
         '''
 
         # mediatypeType Possible values: 
@@ -1698,7 +1688,7 @@ class zabbix_api:
     def mediatype_del(self,mediatypeName):
         '''
         Remove a mediatype
-        [eg1]./zabbix_api.py mediatype_del "alerts"
+        [eg1]#zabbix_api mediatype_del "alerts"
         '''
         mediatype_list=[]
         for i in mediatypeName.split(','):
@@ -1805,7 +1795,7 @@ class zabbix_api:
     def action_get(self,actionName=''): 
         '''
         rerun action list
-        [eg1]./zabbix_api.py action_get
+        [eg1]#zabbix_api action_get
         '''
         # action
         # eventsource 0 triggers
@@ -1858,7 +1848,7 @@ class zabbix_api:
     def action_autoreg_create(self, actionName,hostgroupName): 
         '''
         create autoreg action
-        [eg1]./zabbix_api.py action_autoreg_create "ceshi_action" "Linux servers"
+        [eg1]#zabbix_api action_autoreg_create "ceshi_action" "Linux servers"
         '''
         if self.action_get(actionName):
             output_print={}
@@ -1951,7 +1941,7 @@ class zabbix_api:
     def action_trigger_create(self, actionName,usergroupName,mediatypeName): 
         '''
         create trigger action
-        [eg1]./zabbix_api.py action_trigger_create "ceshi_trigger_action" "op" "alerts"
+        [eg1]#zabbix_api action_trigger_create "ceshi_trigger_action" "op" "alerts"
         '''
         if self.action_get(actionName):
             output_print={}
@@ -2045,7 +2035,7 @@ class zabbix_api:
     def action_discovery_create(self, actionName,hostgroupName): 
         '''
         create autoreg action
-        [eg1]./zabbix_api.py action_discovery_create "ceshi_action" "Linux servers"
+        [eg1]#zabbix_api action_discovery_create "ceshi_action" "Linux servers"
         '''
 
         if self.action_get(actionName):
@@ -2207,7 +2197,7 @@ class zabbix_api:
     def issues(self): 
         '''
         output issues list
-        [eg1]./zabbix_api.py issues
+        [eg1]#zabbix_api issues
         '''
         #trigger_get
 
@@ -2354,14 +2344,26 @@ class zabbix_api:
             else:
                 for output in output_list:
                     for output_sub in output:
+                        output_sub=output_sub.replace('\n', ',')
                         print("[%s]"%output_sub,end=" ")
                     print()
             print("sum: ",len(output_list[1:]))
+    def __generate_return(self,status,output_info):
+        '''
+        内部函数
+        返回格式化结果
+        '''
+        output_print={}
+        output_print["status"] = status
+        output_print["output"] = output_info
+        if self.output:
+            print(json.dumps(output_print))
+        return json.dumps(output_print)
     def hosts_template_clear(self,template):
         '''
         clear template
-        [eg1]./zabbix_api.py hosts_template_clear 10001
-        [eg2]./zabbix_api.py hosts_template_clear "Template OS Linux"
+        [eg1]#zabbix_api hosts_template_clear 10001
+        [eg2]#zabbix_api hosts_template_clear "Template OS Linux"
         '''
         templates_info = self.template_get(template)
         if not len(templates_info):
@@ -2379,8 +2381,8 @@ class zabbix_api:
     def hosts_template_link(self,template):
         '''
         link template
-        [eg1]./zabbix_api.py hosts_template_link 10001
-        [eg2]./zabbix_api.py hosts_template_link "Template OS Linux"
+        [eg1]#zabbix_api hosts_template_link 10001
+        [eg2]#zabbix_api hosts_template_link "Template OS Linux"
         '''
         templates_info = self.template_get(template)
         if not len(templates_info):
@@ -2406,7 +2408,7 @@ class zabbix_api:
             
 if __name__ == "__main__":
     print( __version__)
-    parser=argparse.ArgumentParser(usage='\033[43;37mpython %(prog)s function param [options]\033[0m')
+    parser=argparse.ArgumentParser(usage='\033[43;37m#%(prog)s function param [options]\033[0m')
    
     #####################################
     parser_report = parser.add_argument_group('report')
