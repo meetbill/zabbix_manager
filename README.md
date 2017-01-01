@@ -5,15 +5,6 @@
 ## Supported versions
 > * zabbix3.0.X
 
-## 相关项目
-
-> * zabbix安装-------------------------------------------------[zabbix_install](https://github.com/BillWang139967/zabbix_install)
-> * zabbix报警工具---------------------------------------------[zabbix_alert](https://github.com/BillWang139967/zabbix_alert)
-> * zabbix常用模板---------------------------------------------[zabbix_templates](https://github.com/BillWang139967/zabbix_templates)
-> * 导出报表工具-----------------------------------------------[XLSWriter](https://github.com/BillWang139967/XLSWriter)
-> * linux终端表格----------------------------------------------[linux_terminal](https://github.com/BillWang139967/linux_terminal)
-> * shell菜单工具----------------------------------------------[shell_menu](https://github.com/BillWang139967/shell_menu)
-
 ## 相关知识点
 
 > * 命令行argparse---------------------------------------------[argparse](https://github.com/BillWang139967/BillWang139967.github.io/blob/master/doc/python/argparse.doc.md)
@@ -81,12 +72,21 @@ $ git checkout master
 $ git rebase upstream/master
 $ git push -f origin master
 ```
+## 相关链接
+
+> * zabbix_manager网页手册-------------------------------------[zabbix_manager manual](http://www.w3cschool.cn/zabbix_manager/)
+> * zabbix安装-------------------------------------------------[zabbix_install](https://github.com/BillWang139967/zabbix_install)
+> * zabbix报警工具---------------------------------------------[zabbix_alert](https://github.com/BillWang139967/zabbix_alert)
+> * zabbix常用模板---------------------------------------------[zabbix_templates](https://github.com/BillWang139967/zabbix_templates)
+> * 导出报表工具-----------------------------------------------[XLSWriter](https://github.com/BillWang139967/XLSWriter)
+> * linux终端表格----------------------------------------------[linux_terminal](https://github.com/BillWang139967/linux_terminal)
+> * shell菜单工具----------------------------------------------[shell_menu](https://github.com/BillWang139967/shell_menu)
+
 ## 小额捐款
 
 如果你觉得zabbix_manager对你有帮助, 可以对作者进行小额捐款(支付宝)
 
 ![Screenshot](images/5.jpg)
-
 
 ## 致谢
 

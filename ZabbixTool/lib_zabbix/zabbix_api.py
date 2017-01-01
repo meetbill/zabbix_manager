@@ -309,35 +309,18 @@ class zabbix_api:
             result.close()
             print('----主机现在状态------------')
             self.host_get(hostname)
-    def host_delete(self,hostnames):
+    def host_delete(self,hostname):
         '''
         Remove the host
         [eg1]#zabbix_api host_delete "ceshi_host"
-        [eg1]#zabbix_api host_delete "ceshi_host1,ceshi_host2"
         '''
-        hostid_list=[]
-        for i in hostnames.split(','):
-            hostid = self.host_get(i)
-            hostid_list.append(hostid)      
-        data=json.dumps({
-                "jsonrpc": "2.0",
-                "method": "host.delete",
-                "params": hostid_list,
-                "auth":self.authID,
-                "id": 1
-                })
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-             
-        try: 
-            result = urllib2.urlopen(request) 
-        except Exception,e: 
-            print(e)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            print("主机 \033[041m %s\033[0m  已经删除 !"%hostnames)
+        hostid = self.host_get(hostname)
+        if not hostid:
+            return self.__generate_return("ERR","host [%s] is not exist"%hostname)
+        response = self.zapi.host.delete([
+            hostid
+        ])
+        return self.__generate_return("OK","delete host:[%s] id:[%s] OK"%(hostname,response["hostids"][0]))
     # hostgroup
     def hostgroup_get(self, hostgroupName=''): 
         '''
@@ -1410,89 +1393,66 @@ class zabbix_api:
         get user list
         [eg1]#zabbix_api user_get
         '''
-        data=json.dumps({
-                "jsonrpc": "2.0",
-                "method": "user.get",
-                "params": {
-                          "output": "extend",
-                          "filter":{"alias":userName} 
-                          },
-                "auth":self.authID,
-                "id": 1
-                })
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            if hasattr(e, 'reason'): 
-                print('We failed to reach a server.' )
-                print( 'Reason: ', e.reason )
-            elif hasattr(e, 'code'): 
-                print( 'The server could not fulfill the request.' )
-                print( 'Error code: ', e.code )
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                return 0
-            output = []
-            output[:]=[]
-            output.append(["userid","alias","name","url"])
-            for user in response['result']:      
-                if len(userName)==0:
-                    output.append([user['userid'],user['alias'],user['name'],user['url']])
-                else:
-                    return user['userid']
-            self.__generate_output(output)
+        response = self.zapi.user.get({
+            "output": "extend",
+            "filter":{"alias":userName} 
+            })
+        if len(response) == 0:
+            return 0
+        output = []
+        output[:]=[]
+        output.append(["userid","alias","name","url"])
+        for user in response:      
+            if len(userName)==0:
+                output.append([user['userid'],user['alias'],user['name'],user['url']])
+            else:
+                return user['userid']
+        self.__generate_output(output)
     def user_create(self, userName,userPassword,usergroupName,mediaName,email): 
         '''
         create a user
         [eg1]#zabbix_api user_create "ceshi_user" "123456" "ceshi_usergroup" "alerts" "meetbill@163.com"
         '''
-        if self.user_get(userName):
-            print("\033[041mthis userName is exists\033[0m" )
-            sys.exit(1)
-
         usergroupID=self.usergroup_get(usergroupName)[0]
         mediatypeID=self.mediatype_get(mediaName)
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"user.create", 
-                           "params": {
-                                "alias": userName,
-                                "passwd": userPassword,
-                                "usrgrps": [
-                                             {
-                                             "usrgrpid": usergroupID
-                                             }      
-                                            ],
-                                "user_medias": [
-                                            {
-                                                "mediatypeid": mediatypeID,
-                                                "sendto": email,
-                                                "active": 0,
-                                                "severity": 63,
-                                                "period": "1-7,00:00-24:00"
-                                            }
-                                                ]
-                                       },
-                           "auth":self.authID, 
-                           "id":1                   
-        }) 
-        request = urllib2.Request(self.url, data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            print("add user : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (usergroupName, response['result']['userids'][0]))
+        if self.user_get(userName):
+            return self.__generate_return("ERR","user [%s] is exist"%userName)
+        if not usergroupID:
+            return self.__generate_return("ERR","usergroup [%s] is not exist"%usergroupName)
+        if not mediatypeID:
+            return self.__generate_return("ERR","mediatype [%s] is not exist"%mediaName)
+        response=self.zapi.user.create({
+            "alias": userName,
+            "name" : userName,
+            "passwd": userPassword,
+            "usrgrps": [
+                {
+                    "usrgrpid": usergroupID
+                }      
+            ],
+            "user_medias": [
+                {
+                    "mediatypeid": mediatypeID,
+                    "sendto": email,
+                    "active": 0,
+                    "severity": 63,
+                    "period": "1-7,00:00-24:00"
+                }
+            ]
+        })
+        return self.__generate_return("OK","create user:[%s] id:[%s] OK"%(userName,response["userids"][0]))
+    def user_delete(self,userName): 
+        '''
+        Remove user
+        [eg1]#zabbix_api user_delete "ceshi_user"
+        '''
+        userid = self.user_get(userName)
+        if not userid:
+            return self.__generate_return("ERR","user [%s] is not exist"%userName)
+        response = self.zapi.user.delete([
+            userid    
+        ])
+        return self.__generate_return("OK","delete user:[%s] id:[%s] OK"%(userName,response["userids"][0]))
     def usergroup_get(self,usergroupName=''): 
         '''
         return usergroup list
@@ -1523,7 +1483,7 @@ class zabbix_api:
         Create a usergroup
         [eg1]#zabbix_api usergroup_create "ceshi_usergroup" "Linux servers"
         '''
-        if self.usergroup_get(usergroupName):
+        if self.usergroup_get(usergroupName)[0]:
             return self.__generate_return("ERR","usergroup [%s] is exist"%usergroupName)
         hostgroupID=self.hostgroup_get(hostgroupName)
         if not hostgroupID:
@@ -1538,10 +1498,10 @@ class zabbix_api:
         if len(response) == 0:
             return 0
         return self.__generate_return("OK","create usergroup:[%s] id:[%s] is OK"%(usergroupName,response['usrgrpids'][0]))
-    def usergroup_del(self,usergroupName):
+    def usergroup_delete(self,usergroupName):
         '''
         Remove a usergroup
-        [eg1]#zabbix_api usergroup_del "ceshi_usergroup"
+        [eg1]#zabbix_api usergroup_delete "ceshi_usergroup"
         '''
         usergroupID,usercount=self.usergroup_get(usergroupName)
         if not usergroupID:

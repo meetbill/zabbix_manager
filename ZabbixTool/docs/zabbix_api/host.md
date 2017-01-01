@@ -24,6 +24,13 @@ sum:  2
 1.2.1
 {"status": "OK", "output": "create host:[ceshi_host5] hostid:[10111] OK"}
 ```
+**删除主机**
+```
+[root@Linux ~]#zabbix_api host_delete "ceshi5" 
+1.2.1
+{"status": "OK", "output": "delete host:[ceshi_host5] hostid:[10111] OK"}
+
+```
 
 **批量对主机进行 clear 指定模板**
 
