@@ -560,36 +560,39 @@ class zabbix_api:
                 timeArray = time.localtime(int(history_info['clock']))
                 otherStyleTime = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
                 print(item_ID,history_info['value'],otherStyleTime)
-    def __get_select_condition_info(self,select_condition): 
+    def __get_select_condition_info(self): 
         '''
         内部函数
         获得特定条件的主机信息
         '''
         output = ""
-        if select_condition["hostgroupID"]:
-            flag = 1
-            for i in select_condition["hostgroupID"].split(','):
-                hostgroup_name = self.__hostgroup_get_name(i)
-                if flag:
-                    flag = 0
-                    output = hostgroup_name + output
-                else:
-                    output = hostgroup_name+u"、"+output
-            output = u"主机组:" + output 
+        if self.__hostgroup_id__ or self.__host_id__:
+            if self.__hostgroup_id__:
+                flag = 1
+                for i in self.__hostgroup_id__.split(','):
+                    hostgroup_name = self.__hostgroup_get_name(i)
+                    if flag:
+                        flag = 0
+                        output = hostgroup_name + output
+                    else:
+                        output = hostgroup_name+u"、"+output
+                output = u"主机组:" + output 
+            else:
+                output = u"主机组:" + u"无"
+            if self.__host_id__:
+                flag = 1
+                host_name = self.__host_get(hostID=self.__host_id__)
+                for host_info in host_name:
+                    if flag:
+                        output = host_info[2]+"\n"+output
+                    else:
+                        output = host_info[2]+u"、"+output
+                output = u"主机:" + output 
+            else:
+                output = u"主机:" + u"无" + "\n" + output
+            return output
         else:
-            output = u"主机组:" + u"无"
-        if select_condition["hostID"]:
-            flag = 1
-            host_name = self.__host_get(hostID=select_condition["hostID"])
-            for host_info in host_name:
-                if flag:
-                    output = host_info[2]+"\n"+output
-                else:
-                    output = host_info[2]+u"、"+output
-            output = u"主机:" + output 
-        else:
-            output = u"主机:" + u"无" + "\n" + output
-        return output
+            return 0
     ##
     # @brief report 
     #
@@ -625,23 +628,11 @@ class zabbix_api:
 
 
         # 获取需要输出报表信息的host_list
-        if select_condition["hostgroupid"] or select_condition["hostid"]:
-            xls_range = self.__get_select_condition_info(select_condition)
-                
-            host_list_g=[]
-            host_list_h=[]
-            if select_condition["hostgroupid"]:
-                host_list_g=self.__host_get(hostgroupid=select_condition["hostgroupid"])
-            if select_condition["hostid"]:
-                host_list_h=self.__host_get(hostid=select_condition["hostid"])
-            # 将host_list_h的全部元素添加到host_list_g的尾部
-            host_list_g.extend(host_list_h)
-
-            # 去除列表中重复的元素
-            host_list = list(set(host_list_g))
-        else:
-            xls_range = u"all"
-            host_list = self.__host_get()
+        xls_range = self.__get_select_condition_info()
+        if not xls_range:
+            xls_range = u"ALL"
+        print(xls_range)
+        host_list = self._hosts_get()
         for host_info in host_list: 
             itemid_all_list = self.item_get(host_info[0],itemName)
             if itemid_all_list == 0:
@@ -788,22 +779,11 @@ class zabbix_api:
             err_msg("date_till must after the date_from time")
 
         # 获取需要输出报表信息的host_list
-        if select_condition["hostgroupID"] or select_condition["hostID"]:
-            xls_range = self.__get_select_condition_info(select_condition)
-            host_list_g=[]
-            host_list_h=[]
-            if select_condition["hostgroupID"]:
-                host_list_g=self.__host_get(hostgroupID=select_condition["hostgroupID"])
-            if select_condition["hostID"]:
-                host_list_h=self.__host_get(hostID=select_condition["hostID"])
-            # 将host_list_h的全部元素添加到host_list_g的尾部
-            host_list_g.extend(host_list_h)
-
-            # 去除列表中重复的元素
-            host_list = list(set(host_list_g))
-        else:
+        xls_range = self.__get_select_condition_info()
+        if not xls_range:
             xls_range = u"ALL"
-            host_list = self.__host_get()
+        print(xls_range)
+        host_list = self._hosts_get()
         for host_info in host_list: 
             itemid_all_list = self.item_get(host_info[0],itemName)
             if itemid_all_list == 0:
@@ -913,22 +893,11 @@ class zabbix_api:
             err_msg("date_till must after the date_from time")
 
         # 获取需要输出报表信息的host_list
-        if select_condition["hostgroupID"] or select_condition["hostID"]:
-            xls_range = self.__get_select_condition_info(select_condition)
-            host_list_g=[]
-            host_list_h=[]
-            if select_condition["hostgroupID"]:
-                host_list_g=self.__host_get(hostgroupID=select_condition["hostgroupID"])
-            if select_condition["hostID"]:
-                host_list_h=self.__host_get(hostID=select_condition["hostID"])
-            # 将host_list_h的全部元素添加到host_list_g的尾部
-            host_list_g.extend(host_list_h)
-
-            # 去除列表中重复的元素
-            host_list = list(set(host_list_g))
-        else:
+        xls_range = self.__get_select_condition_info()
+        if not xls_range:
             xls_range = u"ALL"
-            host_list = self.__host_get()
+        print(xls_range)
+        host_list = self._hosts_get()
         for host_info in host_list: 
             # host_info[1]是host_name,host_info[2]是name
             hostname = host_info[2]
