@@ -3,17 +3,9 @@
 以下方法只是 zabbix_api 的冰山一角，详情可以直接#python zabbix_api.py 获取 zabbix_api 使用方法
 
 * [zabbix api 功能](#zabbix-api-功能)
-	* [usergroups 管理](#usergroups-管理)
-	* [host 管理](#host-管理)
 	* [mediatype 管理](#mediatype-管理)
 	* [issues 管理](#issues-管理)
 	* [action 管理](#action-管理)
-
-**add a usergroup**
-
-```bash
-#zabbix_api usergroup_create "op" "HostgroupName"
-```
 
 ## mediatype 管理
 

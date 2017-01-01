@@ -4,7 +4,6 @@
 * [2 报表](#2-报表)
 	* [2.1 服务器可用性报表1](#21-服务器可用性报表1)
 	* [2.2 服务器可用性报表2](#22-服务器可用性报表2)
-	* [2.3 服务器日常使用报表](#23-服务器日常使用报表)
 * [3 内部算法](#3-内部算法)
 	* [3.1 服务器可用性报表1](#31-服务器可用性报表1)
 	* [3.2 服务器可用性报表2](#32-服务器可用性报表2)
@@ -18,13 +17,6 @@ report 包括以下内容
     
 + 服务器可用性报表使用Agent ping计算，Agent ping 成功时会入库1，如果失败时，则不入库。
 + trend会每个小时将history中的值计算出最大值，最小值，和平均值，这里我们需要的是trend小时的记录个数即可
-
-***服务器日常使用报表***
-
-+ CPU在一段时间内的最高值、平均值、最小值等
-+ item支持模糊搜索
-+ 文件系统的使用情况等
-+ 支持选择特定主机组或者主机
 
 ## 2 报表
 
@@ -78,30 +70,6 @@ zabbix界面上显示
 
 输出显示时加--xls ceshi.xls可以导出excel文件，如下
 
-### 2.3 服务器日常使用报表 
-
-```
-直接输出
-#zabbix_api --report item_name date_from date_till
-
-以表格形式展示在终端输出
-#zabbix_api --report item_name date_from date_till --table
-
-以表格形式展示在终端输出,同时将第六列升序输出
-#zabbix_api --report item_name date_from date_till --table --sort 6
-
-以表格形式展示在终端输出,同时将第六列降序输出
-#zabbix_api --report item_name date_from date_till --table --sort 6 --desc
-```
-
-输出显示时加--table可以表框显示
-![Screenshot](https://github.com/BillWang139967/zabbix_manager/raw/master/images/report_table.jpg)
-
-输出显示时加--xls ceshi.xls可以导出excel文件，
-
-同时加--title可以输出logo旁边的title name如下
-
-![Screenshot](https://github.com/BillWang139967/zabbix_manager/raw/master/images/report_xls.jpg)
 
 ## 3 内部算法
 

@@ -35,8 +35,6 @@ sys.setdefaultencoding("utf-8")
 def err_msg(msg):
     print("\033[41;37m[Error]: %s \033[0m"%msg)
     exit()
-def info_msg(msg):
-    print("\033[42;37m[Info]: %s \033[0m"%msg)
 def warn_msg(msg):
     print("\033[43;37m[Warning]: %s \033[0m"%msg)
 
@@ -624,9 +622,7 @@ class zabbix_api:
         time_from = int(time.mktime(startTime))+1
         time_till = int(time.mktime(endTime))
         if time_from > time_till:
-            err_msg("date_till must after the date_from time")
-
-
+            return self.__generate_return("ERR","date_till must after the date_from time")
         # 获取需要输出报表信息的host_list
         xls_range = self.__get_select_condition_info()
         if not xls_range:
@@ -1204,55 +1200,37 @@ class zabbix_api:
         trend_min_data[:]=[]
         trend_max_data[:]=[]
         trend_avg_data[:]=[]
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"trend.get", 
-                           "params":{ 
-                               "time_from":time_from,
-                               "time_till":time_till,
-                               "output":[
-                                   "itemid",
-                                   "clock",
-                                   "num",
-                                   "value_min",
-                                   "value_avg",
-                                   "value_max"
-                                        ],
-                               "itemids":itemID,
-                               "limit":"8760"
-                                     }, 
-                           "auth":self.authID, 
-                           "id":1, 
-                           }) 
-         
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e )
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                debug_info=str([itemID,time_from,time_till,"####not have trend_data"])
-                self.logger.debug(debug_info)
-                return 0.0,0.0,0.0
-            for result_info in response['result']:
-                trend_min_data.append(result_info['value_min'])
-                    
-                trend_max_data.append(result_info['value_max'])
-                trend_avg_data.append(result_info['value_avg'])
-            trend_min_data_all=my_sort.Stats(trend_min_data)
-            trend_max_data_all=my_sort.Stats(trend_max_data)
-            trend_avg_data_all=my_sort.Stats(trend_avg_data)
-            trend_min=trend_min_data_all.min()
-            trend_max=trend_max_data_all.max()
-            trend_avg=float('%0.4f'% trend_avg_data_all.avg())
-            
-            return (trend_min,trend_max,trend_avg)
+        response = self.zapi.trend.get({
+            "time_from":time_from,
+            "time_till":time_till,
+            "output":[
+                "itemid",
+                "clock",
+                "num",
+                "value_min",
+                "value_avg",
+                "value_max"
+                     ],
+            "itemids":itemID,
+            "limit":"8760"
+        })
+        if len(response) == 0:
+            debug_info=str([itemID,time_from,time_till,"####not have trend_data"])
+            self.logger.debug(debug_info)
+            return 0.0,0.0,0.0
+        for result_info in response:
+            trend_min_data.append(result_info['value_min'])
+                
+            trend_max_data.append(result_info['value_max'])
+            trend_avg_data.append(result_info['value_avg'])
+        trend_min_data_all=my_sort.Stats(trend_min_data)
+        trend_max_data_all=my_sort.Stats(trend_max_data)
+        trend_avg_data_all=my_sort.Stats(trend_avg_data)
+        trend_min=trend_min_data_all.min()
+        trend_max=trend_max_data_all.max()
+        trend_avg=float('%0.4f'% trend_avg_data_all.avg())
+        
+        return (trend_min,trend_max,trend_avg)
     # template
     def template_get(self,identifier=''): 
         '''
@@ -1383,7 +1361,7 @@ class zabbix_api:
         [eg1]#zabbix_api user_create "ceshi_user" "123456" "ceshi_usergroup" "alerts" "meetbill@163.com"
         '''
         usergroupID=self.usergroup_get(usergroupName)[0]
-        mediatypeID=self.mediatype_get(mediaName)
+        mediatypeID=self.mediatype_get(mediaName)[0]
         if self.user_get(userName):
             return self.__generate_return("ERR","user [%s] is exist"%userName)
         if not usergroupID:
@@ -1484,44 +1462,29 @@ class zabbix_api:
         return a mediatype list
         [eg1]#zabbix_api mediatype_get
         '''
+        response = self.zapi.mediatype.get(
+            {
+                "output": "extend",
+                "selectUsers" : ["alias"],
+                "filter":{"description":mediatypeName} 
+            }
+        )
 
-        data=json.dumps({
-                "jsonrpc": "2.0",
-                "method": "mediatype.get",
-                "params": {
-                          "output": "extend",
-                          "filter":{"description":mediatypeName} 
-                          },
-                "auth":self.authID,
-                "id": 1
-                })
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            if hasattr(e, 'reason'): 
-                print('We failed to reach a server.')
-                print('Reason: ', e.reason)
-            elif hasattr(e, 'code'): 
-                print('The server could not fulfill the request.' )
-                print('Error code: ', e.code )
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                return 0
-            output = []
-            output[:] = []
-            output.append(["mediatypeid","type","description","exec_path"])
-            for mediatype in response['result']:      
-                if len(mediatypeName):
-                    return mediatype['mediatypeid']
-                else:
-                    output.append([mediatype['mediatypeid'],mediatype['type'],mediatype['description'],mediatype['exec_path']])
-            self.__generate_output(output)
-            return 0
+        if len(response) == 0:
+            return 0,0
+        output = []
+        output[:] = []
+        output.append(["mediatypeid","type","description","exec_path","users"])
+        for mediatype in response:      
+            if len(mediatypeName):
+                return (mediatype['mediatypeid'],len(mediatype["users"]))
+            else:
+                user_info=""
+                for user in mediatype["users"]:
+                    user_info =  user["alias"] + '\n'+ user_info
+                output.append([mediatype['mediatypeid'],mediatype['type'],mediatype['description'],mediatype['exec_path'],user_info])
+        self.__generate_output(output)
+        return 0
     def mediatype_create(self, mediatypeName,script_name): 
         '''
         create a mediatype[script]
@@ -1533,66 +1496,33 @@ class zabbix_api:
         # 1 - script; 
         # 2 - SMS; 
         # 3 - Jabber; 
-        if self.mediatype_get(mediatypeName):
-            print("\033[041mthis mediatypeName is exists\033[0m" )
-            sys.exit(1)
-
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"mediatype.create", 
-                           "params": {
-                                 "description": mediatypeName,
-                                 "type": 1,
-                                 "exec_path": script_name,
-                                 "exec_params":"{ALERT.SENDTO}\n{ALERT.SUBJECT}\n{ALERT.MESSAGE}\n"
-                                               },
-                           "auth":self.authID, 
-                           "id":1                   
-        }) 
-        request = urllib2.Request(self.url, data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            print("add mediatype : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (mediatypeName, response['result']['mediatypeids'][0]))
-    def mediatype_del(self,mediatypeName):
+        if self.mediatype_get(mediatypeName)[0]:
+            return self.__generate_return("ERR","mediatype [%s] is exist"%mediatypeName)
+        response = self.zapi.mediatype.create(
+            { 
+                "description": mediatypeName,
+                "type": 1,
+                "exec_path": script_name,
+                "exec_params":"{ALERT.SENDTO}\n{ALERT.SUBJECT}\n{ALERT.MESSAGE}\n"
+            }
+        )
+        return self.__generate_return("OK","create mediatype:[%s] id:[%s] OK"%(mediatypeName,response['mediatypeids'][0]))
+    def mediatype_delete(self,mediatypeName):
         '''
         Remove a mediatype
-        [eg1]#zabbix_api mediatype_del "alerts"
+        [eg1]#zabbix_api mediatype_delete "alerts"
         '''
-        mediatype_list=[]
-        for i in mediatypeName.split(','):
-            mediatypeID=self.mediatype_get(i)
-            if mediatypeID:
-                mediatype_list.append(mediatypeID)      
-        if not len(mediatype_list):
-            print("mediatype \033[041m %s\033[0m  is not exists !"% mediatypeName)
-            exit(1)
-        data=json.dumps({
-                "jsonrpc": "2.0",
-                "method": "mediatype.delete",
-                "params": mediatype_list,
-                "auth": self.authID,
-                "id": 1
-                })
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-             
-        try: 
-            result = urllib2.urlopen(request) 
-        except Exception,e: 
-            print(e)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            print("mediatype \033[042m %s\033[0m  delete OK !"% mediatypeName)
+        mediatypeid,userscount=self.mediatype_get(mediatypeName)
+        if not mediatypeid:
+            return self.__generate_return("ERR","mediatype [%s] is not exist"%mediatypeName)
+        if userscount:
+            return self.__generate_return("ERR","mediatype [%s] have users"%mediatypeName)
+        response = self.zapi.mediatype.delete(
+            [
+                mediatypeid
+            ]
+        )
+        return self.__generate_return("OK","delete mediatype:[%s] OK"%mediatypeName)
     # drule(discoveryRules)
     def drule_get(self,druleName=''): 
         data=json.dumps({
@@ -1821,9 +1751,11 @@ class zabbix_api:
         '''
         if self.action_get(actionName):
             return self.__generate_return("ERR","this druleName is not exists")
-        if not self.mediatype_get(mediatypeName):
+        mediatypeid = self.mediatype_get(mediatypeName)[0]
+        if not mediatypeid:
             return self.__generate_return("ERR","this mediatype is not exists")
-        if not self.usergroup_get(usergroupName):
+        usergroupid = self.usergroup_get(usergroupName)
+        if not usergroupid:
             return self.__generate_return("ERR","this usergroup is not exists")
         data = json.dumps({ 
             "jsonrpc": "2.0",
@@ -1867,7 +1799,7 @@ class zabbix_api:
                         ],
                         "opmessage": {
                             "default_msg": 1,
-                            "mediatypeid": self.mediatype_get(mediatypeName)
+                            "mediatypeid": mediatypeid
                         }
                     }
                 ]

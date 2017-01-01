@@ -12,4 +12,3 @@
 (4)创建定时任务每周一执行python /opt/ZabbixTool/main.py week_report
 
 ```
-
