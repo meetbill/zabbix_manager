@@ -1256,7 +1256,16 @@ class zabbix_api:
                 output.append([template['templateid'],template['name']])
             self.__generate_output(output)
             return 0
-    def configuration_import(self,template): 
+    def template_import(self,template_path): 
+        '''
+        import template
+        [eg]#zabbix_api template_import template_path
+        '''
+        try:
+            with open(template_path, 'r') as f:
+                template = f.read()
+        except:
+            return self.__generate_return("ERR","the file [%s] not exist"%template_path)
         rules = {
             'applications': {
                 'createMissing': 'true',
@@ -1310,7 +1319,6 @@ class zabbix_api:
                 'updateExisting': 'true'
             },
         }
-
         data = json.dumps({ 
                            "jsonrpc":"2.0", 
                            "method": "configuration.import", 
@@ -1334,7 +1342,7 @@ class zabbix_api:
         else: 
             response = json.loads(result.read()) 
             result.close() 
-            print(response['result'])
+            return self.__generate_return("OK","import template [%s] OK"%template_path)
     def user_get(self,userName=''): 
         '''
         get user list
@@ -1943,7 +1951,7 @@ class zabbix_api:
         sum_trends_quota = 365 * sum_item_num * 24 * 128
         sum_event_quota = 365 * sum_item_num * 24 * 130 * 5
         mysql_quota = (sum_history_quota + sum_trends_quota + sum_event_quota)/1000000000.0
-        print("item_num:%d Use:%fG"%(sum_item_num,mysql_quota))
+        print("item_num:%d Pre-estimated use:%fG"%(sum_item_num,mysql_quota))
         return 0
     def __triggers_get(self, host_ID=''): 
         '''

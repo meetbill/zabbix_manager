@@ -1,6 +1,7 @@
 # zabbix_manager(server)
 
-[zabbix管理工具手册](./ZabbixTool/README.md)
+> * [zabbix管理工具手册(GitHub)](./ZabbixTool/README.md)
+> * [zabbix管理工具手册(w3cschool)](http://www.w3cschool.cn/zabbix_manager/)
 
 ## Supported versions
 > * zabbix3.0.X
@@ -74,7 +75,6 @@ $ git push -f origin master
 ```
 ## 相关链接
 
-> * zabbix_manager网页手册-------------------------------------[zabbix_manager manual](http://www.w3cschool.cn/zabbix_manager/)
 > * zabbix安装-------------------------------------------------[zabbix_install](https://github.com/BillWang139967/zabbix_install)
 > * zabbix报警工具---------------------------------------------[zabbix_alert](https://github.com/BillWang139967/zabbix_alert)
 > * zabbix常用模板---------------------------------------------[zabbix_templates](https://github.com/BillWang139967/zabbix_templates)

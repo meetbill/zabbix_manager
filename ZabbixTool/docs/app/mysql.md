@@ -17,5 +17,7 @@ zabbix配置：固定大小，一般<10MB
 ### 3 使用
 
 ```
-#zabbix_api mysql_quota
+[root@Linux zabbix_manager]# zabbix_api mysql_quota
+1.2.2
+item_num:211 Pre-estimated use:1.519017G
 ```

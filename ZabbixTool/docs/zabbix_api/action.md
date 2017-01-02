@@ -1,35 +1,28 @@
-# zabbix_manager api 手册
-
-以下方法只是 zabbix_api 的冰山一角，详情可以直接#python zabbix_api.py 获取 zabbix_api 使用方法
-
-## issues 管理
-
-**查看最近问题**
+## action 管理
+**action列表**
 
 ```bash
-#zabbix_api issues --table
-----------------------------------------------以下为程序输出
-分别为[主机名]--[触发器名称]--[触发时间]--[最新值]
-+----------+----------------------------------------------+---------------------+-----------+
-| hostname | trigger                                      | time                | prevvalue |
-+----------+----------------------------------------------+---------------------+-----------+
-| net139   | Free disk space is less than 20% on volume / | 2016/10/26 09:10:44 | 18.0161   |
-| net137   | Free disk space is less than 20% on volume / | 2016/10/26 09:11:32 | 18.0161   |
-+----------+----------------------------------------------+---------------------+-----------+
+[root@Linux ~]#zabbix_api action_get --table
+1.2.2
++----------+------------------------------------------------+--------------+----------+
+| actionid | name                                           | eventsource  | status   |
++----------+------------------------------------------------+--------------+----------+
+| 2        | Auto discovery. Linux servers.                 | discovery    | Disabled |
+| 3        | Report problems to Zabbix administrators       | triggers     | Disabled |
+| 4        | Report not supported items                     | internal     | Disabled |
+| 5        | Report not supported low level discovery rules | internal     | Disabled |
+| 6        | Report unknown triggers                        | internal     | Disabled |
+| 7        | ceshi_action                                   | registration | Enabled  |
+| 8        | trigger_action                                 | triggers     | Enabled  |
++----------+------------------------------------------------+--------------+----------+
+sum:  7
 ```
-## action 管理
 
 **zabbix自动发现配置**
 
-
-第一步是修改配置文件lib_zabbix/zabbix_config.ini 
-
-主要是修改zabbix的ip、端口、admin账户、admin密码
-
 ```bash
-#!/bin/bash
-zabbix_api drule_create "agent discovery" "192.168.199.1-252"
-zabbix_api  action_discovery_create "Auto discovery" store
+#zabbix_api drule_create "agent discovery" "192.168.199.1-252"
+#zabbix_api  action_discovery_create "Auto discovery" store
 ``` 
 自动发现规则是zabbix server去扫描一个网段，把在线的主机添加到Host列表中。适合内网下
 
