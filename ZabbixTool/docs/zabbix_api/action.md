@@ -53,9 +53,7 @@ HostMetadataItem=system.uname
 * Conditions选项卡------添加:Host metadata like Linux
 * Operations选项卡-----添加:Add host,Add to host group ,Link to template
 
-直接执行python main.py即可
-
-执行后需要输入action_name和hostgroup_name
+需要输入action_name和hostgroup_name
 
 ```
 #!/bin/bash

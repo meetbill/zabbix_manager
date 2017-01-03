@@ -1,7 +1,7 @@
 # zabbix_manager(server)
 
+> * [zabbix管理工具手册(w3cschool)(推荐)](http://www.w3cschool.cn/zabbix_manager/)
 > * [zabbix管理工具手册(GitHub)](./ZabbixTool/README.md)
-> * [zabbix管理工具手册(w3cschool)](http://www.w3cschool.cn/zabbix_manager/)
 
 ## Supported versions
 > * zabbix3.0.X
