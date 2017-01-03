@@ -5,6 +5,22 @@
 #cd zabbix_manager
 #sh start.sh
 ```
+### 常见问题
+
+git clone 失败
+
+```
+[root@localhost ~]# git clone https://github.com/BillWang139967/zabbix_manager.git
+Initialized empty Git repository in /root/zabbix_manager/.git/
+error:  while accessing https://github.com/BillWang139967/Vim.git/info/refs
+
+fatal: HTTP request failed
+```
+解决方法
+```
+#git config --global http.sslVerify false
+```
+
 ## 配置
 
 配置文件位置
