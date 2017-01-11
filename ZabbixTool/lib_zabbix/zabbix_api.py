@@ -2307,10 +2307,10 @@ if __name__ == "__main__":
             else:
                 if os.path.exists(zabbix_config):
                     config = ConfigParser.ConfigParser()
-                    config.read("zabbix_config.ini")
+                    config.read(zabbix_config)
                     print(config.sections())
                 else:
-                    print("the zabbix_config.ini is not found")
+                    print("the %s is not found"%zabbix_config)
                 sys.exit()
         else:
             profile = "zabbixserver"
