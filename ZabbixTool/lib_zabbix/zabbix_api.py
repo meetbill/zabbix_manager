@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.2"
+__version__ = "1.2.3"
  
 import json 
 import urllib2 
@@ -69,6 +69,8 @@ class zabbix_api:
         self.authID = self.__user_login() 
         logpath = "/tmp/zabbix_tool.log"
         self.logger = Log(logpath,level="debug",is_console=debug, mbs=5, count=5)
+
+        self.sepsign=None
     def __user_login(self): 
         data = json.dumps({
                            "jsonrpc": "2.0",
@@ -464,7 +466,7 @@ class zabbix_api:
                     if item['name']==itemName:
                         output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history']])
                     else:
-                        if my_compare.my_compare(item['name'],itemName):
+                        if my_compare.my_compare(item['name'],itemName,self.sepsign):
                             output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history']])
             self.__generate_output(output)
             if len(output[1:]):
@@ -632,6 +634,8 @@ class zabbix_api:
         for host_info in host_list: 
             itemid_all_list = self.item_get(host_info[0],itemName)
             if itemid_all_list == 0:
+                debug_msg="host %s No related monitoring items found"% host_info[0]
+                self.logger.debug(debug_msg)
                 continue
             for itemid_sub_list in itemid_all_list:
                 itemid = itemid_sub_list[0]
@@ -752,6 +756,8 @@ class zabbix_api:
         diff_seconds = date2 - date1
         diff_hour = diff_seconds / 3600
         return diff_hour
+    def _set_sepsign(self,sepsign=None):
+        self.sepsign = sepsign
     def _report_available(self,itemName,date_from,date_till,export_xls,select_condition,value_type=False): 
         # 设置为调用的函数不输出
         self.output = False
@@ -2259,6 +2265,8 @@ if __name__ == "__main__":
     parser_output.add_argument('--table',dest='terminal_table',default="OFF",help='show the terminaltables',action="store_true")
     parser_output.add_argument('--xls',nargs=1,metavar=('xls_name.xls'),dest='xls',\
                         help='export data to xls')
+    parser_output.add_argument('--sign',nargs=1,default="OFF",dest='set_sepsign',\
+                        help='set sepsign')
     parser_output.add_argument('--title',nargs=1,metavar=('title_name'),dest='title',\
                         help="add the xls's title")
     parser_output.add_argument('--sort',nargs=1,metavar=('num'),dest='output_sort',default="OFF",help='设置第几列进行排序')
@@ -2316,6 +2324,8 @@ if __name__ == "__main__":
             profile = "zabbixserver"
 
         zabbix=zabbix_api(terminal_table,debug,output_sort=output_sort,sort_reverse=sort_reverse,profile = profile)
+        if args.set_sepsign != "OFF":
+            zabbix._set_sepsign(args.set_sepsign[0])
         #print(args)
         #print(unknown_args)
         export_xls = {"xls":"OFF",

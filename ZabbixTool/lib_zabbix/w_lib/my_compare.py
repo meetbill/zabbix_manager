@@ -8,12 +8,16 @@
 # Description:
 
 """
+__version__ = "1.0.2"
 import re
-def my_compare(str_all,str_sub):
-    str_sub_list=re.split(r' ', str_sub)
-    str_all=" "+str_all+" "
+def my_compare(str_all,str_sub,sep_sign=None):
+    if not sep_sign:
+        sep_sign = ' '
+    str_sub_list=re.split(sep_sign, str_sub)
+    #str_sub_list=re.split(r' ', str_sub)
+    str_all=sep_sign+str_all+sep_sign
     for sub in str_sub_list:
-        sub =" "+sub+" "
+        sub =sep_sign+sub+sep_sign
         if sub in str_all:
             continue
         else:
@@ -31,4 +35,15 @@ if __name__ == "__main__":
     info=my_compare(str2,str_sub)
     print "ceshi:0",info
     info=my_compare(str3,str_sub)
+    print "ceshi:0",info
+    
+    str_sub="to_world"
+    str1="I_want_to_say_hello_world"
+    str2="I_want_say_hello_world"
+    str3="I_want_say_hello_wor"
+    info=my_compare(str1,str_sub,sep_sign='_')
+    print "ceshi:1",info
+    info=my_compare(str2,str_sub,sep_sign='_')
+    print "ceshi:0",info
+    info=my_compare(str3,str_sub,sep_sign='_')
     print "ceshi:0",info
