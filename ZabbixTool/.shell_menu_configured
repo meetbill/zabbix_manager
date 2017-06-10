@@ -1,0 +1,2 @@
+#!/bin/bash
+TOOL_PATH_FLAG=/root/github/zabbix_manager/ZabbixTool

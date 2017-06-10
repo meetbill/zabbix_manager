@@ -10,8 +10,8 @@
 #            M A I N             #
 #================================#
 
-VERSION=1.0.2
-TIME="2016-10-21"
+VERSION=1.0.5
+TIME="2017-06-09"
 TOOL_PATH=$(cd `dirname $0`; pwd)
 export TOOL_PATH
 cd  ${TOOL_PATH}
@@ -24,6 +24,7 @@ FUNTION_DIR_S=${TOOL_PATH}/${FUNTION_DIR}
 menu=0 # The first few menu
 tree=0 # The default does not display the menu tree
 verbose=0 # The default menu tree diagram does not display with the menu information
+
 
 
 #{{{Enter
@@ -77,6 +78,7 @@ Create_file()
     else
         # 清理下菜单配置目录
         [[ ! -z ${MENUPATH} ]] && rm -rf ${MENUPATH}/*.menu
+        touch ${MENUFILE}
     fi
     find ${FUNTION_DIR} -name "*.sh" | while read SH_FILE
     do
@@ -99,7 +101,11 @@ Create_file()
                 SUB_MENU_NAME=`echo ${FILE_PATH} | awk -F / '{print $1}'`
 
                 # 将目录名称写到一级菜单中
-                echo "${SUB_MENU_NAME}%${SUB_MENU_NAME}.menu" >> ${MENUFILE}
+                CHECK_MENU=`grep "${SUB_MENU_NAME}%${SUB_MENU_NAME}.menu" ${MENUFILE}|wc -l`
+                if [ "w${CHECK_MENU}" == "w0" ]
+                then
+                    echo "${SUB_MENU_NAME}%${SUB_MENU_NAME}.menu" >> ${MENUFILE}
+                fi
 
                 # 将 Function 二级目录下的脚本写到二级菜单中
                 echo "${FILE_NAME}%${FUNTION_DIR_S}/${FILE_PATH}" >> ${MENUPATH}/${SUB_MENU_NAME}.menu
@@ -107,8 +113,15 @@ Create_file()
             fi
         fi
     done
-    sh main.sh -t
-    echo "OK"
+    find ${MENUPATH} -name "*.menu" | while read MENU_FILE
+    do
+        if [[ -n ${MENU_FILE} ]]
+        then
+            sort ${MENU_FILE} >> ${MENU_FILE}.new
+            mv ${MENU_FILE}.new ${MENU_FILE}
+        fi
+    done
+    echo "update menu OK"
 }
 #}}}
 #{{{Tree
@@ -277,6 +290,22 @@ done
  
 }
 #}}}
+
+
+
+_file_marker=".shell_menu_configured"
+if [ ! -f "$_file_marker" ]; then
+    echo "#!/bin/bash" > $_file_marker
+    echo "TOOL_PATH_FLAG=$TOOL_PATH" >> $_file_marker
+    Create_file
+else
+    . ./$_file_marker
+    if [[ "w$TOOL_PATH" != "w$TOOL_PATH_FLAG" ]]
+    then
+        Create_file
+    fi
+fi
+
 while getopts vtcf:h OPTION
 do
         case $OPTION in
@@ -294,7 +323,7 @@ do
                    ;;
                 c)
                    Create_file
-                   exit 0
+                   tree=1
                    ;;
                 h)
                    echo

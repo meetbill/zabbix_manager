@@ -13,5 +13,5 @@ if [[ -z ${g_HOST_ID} ]]
 then
     err_echo "host_id is null"
 fi
-python ./lib_zabbix/zabbix_api.py item_get $g_HOST_ID
+zabbix_api item_get $g_HOST_ID
 

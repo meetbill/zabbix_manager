@@ -49,11 +49,6 @@ def week_report():
     # 3 发送邮件
     sml.sendMail()
 
-
-    
-    
-    
-
 # 函数作为模块调用 不必理会
 if __name__ == '__main__':
     import sys

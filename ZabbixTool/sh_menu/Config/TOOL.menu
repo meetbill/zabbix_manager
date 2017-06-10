@@ -1,4 +1,5 @@
-host%host.menu
-template%template.menu
 hostgroup%hostgroup.menu
+host%host.menu
+issues.sh%/root/github/zabbix_manager/ZabbixTool/sh_menu/Function/issues.sh
 item%item.menu
+template%template.menu

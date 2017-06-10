@@ -5,5 +5,5 @@
 # Created Time: 2016-11-27 16:53:17
 #########################################################################
 #!/bin/bash
-python ./lib_zabbix/zabbix_api.py hostgroup_get
+zabbix_api hostgroup_get --table
 
