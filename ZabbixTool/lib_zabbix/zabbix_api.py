@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.3"
+__version__ = "1.2.4"
  
 import json 
 import urllib2 
@@ -30,6 +30,7 @@ import XLSWriter
 from BLog import Log
 import argparse
 import logging
+import math
 reload(sys)
 sys.setdefaultencoding("utf-8")
 def err_msg(msg):
@@ -420,7 +421,7 @@ class zabbix_api:
         '''
         # @return list
         # list_format
-        # [item['itemid'],item['name'],item['key_'],item['delay'],item['value_type']]
+        # [item['itemid'],item['name'],item['key_'],item['delay'],item['value_type']],item['units']
 
         data = json.dumps({ 
                            "jsonrpc":"2.0", 
@@ -448,7 +449,7 @@ class zabbix_api:
                 return 0
             output=[]
             output[:]=[]
-            output.append(["itemid","name","key_","update_time","value_type","history"])
+            output.append(["itemid","name","key_","update_time","value_type","history","units"])
             for item in response['result']:
                 #########################################
                 # alt the $1 and $2 
@@ -461,13 +462,13 @@ class zabbix_api:
                         para='$'+str(para_a+1)
                         item['name']=item['name'].replace(para,list_para[para_a])
                 if  len(itemName)==0:
-                    output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history']])
+                    output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history'],item['units']])
                 else:
                     if item['name']==itemName:
-                        output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history']])
+                        output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history'],item['units']])
                     else:
                         if my_compare.my_compare(item['name'],itemName,self.sepsign):
-                            output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history']])
+                            output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history'],item['units']])
             self.__generate_output(output)
             if len(output[1:]):
                 return output[1:]
@@ -602,6 +603,14 @@ class zabbix_api:
     # @param export_xls 
     #
     # @return 
+    def __ByteFormat(self,size):
+        if size > math.pow(1024,3):
+            return '%.2f G' % (size/math.pow(1024,3))
+        if size > math.pow(1024,2):
+            return '%.2f M' % (size/math.pow(1024,2))
+        if size > 1024:
+            return '%.2f K' % (size/math.pow(1024,1))
+        return size
     def _report(self,itemName,date_from,date_till,export_xls,select_condition): 
 
         # 设置为调用的函数不输出
@@ -640,18 +649,21 @@ class zabbix_api:
             for itemid_sub_list in itemid_all_list:
                 itemid = itemid_sub_list[0]
                 item_name = itemid_sub_list[1]
-                item_key = itemid_sub_list[2]
-                history_type = itemid_sub_list[4]
+                value_type = itemid_sub_list[4]
+                units = itemid_sub_list[6]
                 debug_msg="itemid:%s"%itemid
                 self.logger.debug(debug_msg)
                 report_min,report_max,report_avg = self.__trend_get(itemid,time_from,time_till)
-                if history_type=="3":
+                if value_type=="3":
                     report_min=int(report_min)
                     report_max=int(report_max)
                     report_avg=int(report_avg)
-                report_min=str(report_min)
-                report_max=str(report_max)
-                report_avg=str(report_avg)
+                    report_min=self.__ByteFormat(report_min)
+                    report_max=self.__ByteFormat(report_max)
+                    report_avg=self.__ByteFormat(report_avg)
+                report_min=str(report_min) + units
+                report_max=str(report_max) + units
+                report_avg=str(report_avg) + units
                 itemid=str(itemid)
                 report_output.append([host_info[0],host_info[2],item_name,report_min,report_max,report_avg])
         if self.output_sort:
