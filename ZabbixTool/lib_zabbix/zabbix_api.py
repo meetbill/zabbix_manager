@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.4"
+__version__ = "1.2.5"
  
 import json 
 import urllib2 
@@ -613,6 +613,8 @@ class zabbix_api:
         return size
     def _report(self,itemName,date_from,date_till,export_xls,select_condition): 
 
+        units_list = ["B","vps","bps","sps"]
+
         # 设置为调用的函数不输出
         self.output = False
         dateFormat = "%Y-%m-%d %H:%M:%S"
@@ -658,9 +660,10 @@ class zabbix_api:
                     report_min=int(report_min)
                     report_max=int(report_max)
                     report_avg=int(report_avg)
-                    report_min=self.__ByteFormat(report_min)
-                    report_max=self.__ByteFormat(report_max)
-                    report_avg=self.__ByteFormat(report_avg)
+                    if units in units_list:
+                        report_min=self.__ByteFormat(report_min)
+                        report_max=self.__ByteFormat(report_max)
+                        report_avg=self.__ByteFormat(report_avg)
                 report_min=str(report_min) + units
                 report_max=str(report_max) + units
                 report_avg=str(report_avg) + units
@@ -2018,51 +2021,32 @@ class zabbix_api:
         output issues list
         [eg1]#zabbix_api issues
         '''
-        #trigger_get
-
-        all_trigger_list=[]
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"trigger.get", 
-                           "params":{ 
-                               "output":"extend",
-                               "expandDescription":1,
-                               "only_true":1,
-                               "skipDependent":1,
-                               "active":1,
-                               "withLastEventUnacknowledged":1,
-                               "monitored":1,
-                               "selectHosts":["host","name"],
-                               "selectItems":["key_","prevvalue","units","value_type"],
-                               "filter": {
-                                  "value": 1
-                               },
-                           }, 
-                           "auth":self.authID, 
-                           "id":1, 
-        }) 
-         
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                print(":) no issues")
-                return 0
-            output = []
-            output[:] = []
-            output.append(["hostname","trigger","time","prevvalue"])
-            for trigger in response['result']:
-                output.append([trigger["hosts"][0]["name"],trigger["description"],time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(float(trigger["lastchange"]))),trigger["items"][0]["prevvalue"]+trigger["items"][0]["units"]])
-            self.__generate_output(output)
+        params = { 
+               "output":"extend",
+               "expandDescription":1,
+               "only_true":1,
+               "skipDependent":1,
+               "active":1,
+               "withLastEventUnacknowledged":1,
+               "monitored":1,
+               "selectHosts":["host","name"],
+               "selectItems":["key_","prevvalue","units","value_type"],
+               "filter": {
+                  "value": 1
+               }
+        }
+        result = self.zapi.trigger.get(params)
+        if len(result) == 0:
+            print(":) no issues")
             return 0
+        output = []
+        output[:] = []
+        output.append(["hostname","trigger","time","prevvalue"])
+        for trigger in result:
+            output.append([trigger["hosts"][0]["name"],trigger["description"],time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(float(trigger["lastchange"]))),trigger["items"][0]["prevvalue"]+trigger["items"][0]["units"]])
+        self.__generate_output(output)
+        return 0
+         
     def __event_get(self, triggerid='',time_from='',time_till='',value=""): 
         '''
         The method allows to retrieve events according to the given parameters.
