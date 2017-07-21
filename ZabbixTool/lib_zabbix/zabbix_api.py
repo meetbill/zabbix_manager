@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.5"
+__version__ = "1.2.6"
  
 import json 
 import urllib2 
@@ -21,6 +21,7 @@ root_path = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(root_path)
 sys.path.insert(0, os.path.join(root_path, 'w_lib'))
 zabbix_config = '/etc/zabbix_tool/zabbix_config.ini'
+zabbix_setting = '/etc/zabbix_tool/zabbix_setting.ini'
 
 from colorclass import Color
 from terminaltables import SingleTable
@@ -41,6 +42,21 @@ def warn_msg(msg):
 
 class zabbix_api: 
     def __init__(self,terminal_table=False,debug=False,output=True,output_sort=False,sort_reverse=False,profile="zabbixserver"): 
+        web_access = False
+        if os.path.exists(zabbix_setting):
+            config = ConfigParser.ConfigParser()
+            config.read(zabbix_setting)
+            web_access = config.get("web", "apache")
+            logo_show_config = config.get("report","logo_show")
+            if logo_show_config == "True":
+                self.logo_show = True
+            else:
+                self.logo_show = False
+
+        else:
+            print("the config file [%s] is not exist"%zabbix_setting)
+            exit(1)
+
         if os.path.exists(zabbix_config):
             config = ConfigParser.ConfigParser()
             config.read(zabbix_config)
@@ -53,10 +69,13 @@ class zabbix_api:
             self.port = config.get(profile, "port")
             self.user = config.get(profile, "user")
             self.password = config.get(profile, "password")
+            zabbix_server="http://%s:%s"%(self.server,self.port)
+            if web_access == "True":
+                zabbix_server = zabbix_server + '/zabbix'
             if debug:
-                self.zapi=ZabbixAPI(server="http://%s:%s"%(self.server,self.port),log_level=logging.DEBUG)
+                self.zapi=ZabbixAPI(server=zabbix_server,log_level=logging.DEBUG)
             else:
-                self.zapi=ZabbixAPI(server="http://%s:%s"%(self.server,self.port))
+                self.zapi=ZabbixAPI(server=zabbix_server)
             self.zapi.login(self.user,self.password)
             self.__host_id__ = ''
             self.__hostgroup_id__ = ''
@@ -64,7 +83,7 @@ class zabbix_api:
             print("the config file [%s] is not exist"%zabbix_config)
             exit(1)
 
-        self.url = 'http://%s:%s/api_jsonrpc.php' % (self.server,self.port) #修改URL
+        self.url = zabbix_server + '/api_jsonrpc.php'
         self.header = {"Content-Type":"application/json"}
         self.terminal_table=terminal_table
         self.authID = self.__user_login() 
@@ -696,9 +715,9 @@ class zabbix_api:
             xlswriter = XLSWriter.XLSWriter(export_xls["xls_name"])
             # title
             if export_xls["title"] == 'ON':
-                xlswriter.add_image("python.bmg",0,0,6,title_name=export_xls["title_name"],sheet_name=sheetName)
+                xlswriter.add_big_head(self.logo_show,0,0,6,title_name=export_xls["title_name"],sheet_name=sheetName)
             else:
-                xlswriter.add_image("python.bmg",0,0,sheet_name=sheetName)
+                xlswriter.add_big_head(self.logo_show,0,0,sheet_name=sheetName)
             # 报告周期
             xlswriter.add_header(u"报告周期:"+title_table,6,sheet_name=sheetName)
             xlswriter.setcol_width([10,50,35,10,10,10],sheet_name=sheetName)
@@ -871,9 +890,9 @@ class zabbix_api:
             xlswriter = XLSWriter.XLSWriter(export_xls["xls_name"])
             # title
             if export_xls["title"] == 'ON':
-                xlswriter.add_image("python.bmg",0,0,6,title_name=export_xls["title_name"],sheet_name=sheetName)
+                xlswriter.add_big_head(self.logo_show,0,0,6,title_name=export_xls["title_name"],sheet_name=sheetName)
             else:
-                xlswriter.add_image("python.bmg",0,0,sheet_name=sheetName)
+                xlswriter.add_big_head(self.logo_show,0,0,sheet_name=sheetName)
             # 报告周期
             xlswriter.add_header(u"报告周期:"+title_table,6,sheet_name=sheetName)
             xlswriter.setcol_width([10,50,35,10,10,10],sheet_name=sheetName)
@@ -961,9 +980,9 @@ class zabbix_api:
             xlswriter = XLSWriter.XLSWriter(export_xls["xls_name"])
             # title
             if export_xls["title"] == 'ON':
-                xlswriter.add_image("python.bmg",0,0,4,title_name=export_xls["title_name"],sheet_name=sheetName)
+                xlswriter.add_big_head(self.logo_show,0,0,4,title_name=export_xls["title_name"],sheet_name=sheetName)
             else:
-                xlswriter.add_image("python.bmg",0,0,sheet_name=sheetName)
+                xlswriter.add_big_head(self.logo_show,0,0,sheet_name=sheetName)
             # 报告周期
             xlswriter.add_header(u"报告周期:"+title_table,6,sheet_name=sheetName)
             xlswriter.setcol_width([15,15,50,10,10,15],sheet_name=sheetName)
@@ -1150,9 +1169,9 @@ class zabbix_api:
             xlswriter = XLSWriter.XLSWriter(export_xls["xls_name"])
             # title
             if export_xls["title"] == 'ON':
-                xlswriter.add_image2("python.bmg",0,0,6,title_name=export_xls["title_name"],sheet_name=sheetName)
+                xlswriter.add_big_head(self.logo_show,0,0,6,title_name=export_xls["title_name"],sheet_name=sheetName)
             else:
-                xlswriter.add_image2("python.bmg",0,0,sheet_name=sheetName)
+                xlswriter.add_big_head(self.logo_show,0,0,sheet_name=sheetName)
             # 报告周期
             xlswriter.add_header(u"报告周期:"+title_table,6,sheet_name=sheetName)
             xlswriter.setcol_width([5,58,20,20,8,8,8,8,8,8,8,8,8,8,8,8,8,11],sheet_name=sheetName)

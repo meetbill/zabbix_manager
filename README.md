@@ -1,14 +1,12 @@
 # zabbix_manager(server)
 
-> * [zabbix管理工具手册(w3cschool)(推荐)](http://www.w3cschool.cn/zabbix_manager/)
-> * [zabbix管理工具手册(GitHub)](./ZabbixTool/README.md)
+> * [zabbix管理工具手册(GitHub)(推荐)](https://github.com/BillWang139967/zabbix_manager/wiki)
+> * [zabbix管理工具手册(w3cschool)](http://www.w3cschool.cn/zabbix_manager/)
 
 ## Supported versions
 > * zabbix3.0.X
 
-## 相关知识点
-
-> * 命令行argparse---------------------------------------------[argparse](https://github.com/BillWang139967/BillWang139967.github.io/blob/master/doc/python/argparse.doc.md)
+## 功能
 
 **monitor**
 
@@ -29,6 +27,7 @@ Daily we need to export the report, use zabbix manager can export xls file using
 ## version
 ----
 * V1.2
+    * v1.2.6，2017-07-21 更新 (1)[XLSWriter](https://github.com/BillWang139967/XLSWriter) 使之可控制是否显示logo (2)可通过配置以适应 apache 搭建的 zabbix server
     * v1.2.4，2017-06-15 增加 输出日常使用报表时会在值后面加上单位(K/M/G也会自动进行换算)
     * v1.2.3，2017-04-04 增加 -sign 参数(设置搜索分割符)
     * v1.2.1，2016-12-25 增加对主机批量 link 、clear 模板操作

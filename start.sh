@@ -45,7 +45,12 @@ function check_config()
     if [[ ! -f /etc/zabbix_tool/zabbix_config.ini ]]
     then
         mkdir -p /etc/zabbix_tool
-        cp ./ZabbixTool/lib_zabbix/zabbix_config.ini /etc/zabbix_tool/
+        cp ./ZabbixTool/lib_zabbix/etc/zabbix_config.ini /etc/zabbix_tool/
+    fi
+    if [[ ! -f /etc/zabbix_tool/zabbix_setting.ini ]]
+    then
+        mkdir -p /etc/zabbix_tool
+        cp ./ZabbixTool/lib_zabbix/etc/zabbix_setting.ini /etc/zabbix_tool/
     fi
     ProcessBar
 }
