@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.6"
+__version__ = "1.2.7"
  
 import json 
 import urllib2 
@@ -85,12 +85,28 @@ class zabbix_api:
 
         self.url = zabbix_server + '/api_jsonrpc.php'
         self.header = {"Content-Type":"application/json"}
+        self.__zabbix_apiinfo()
         self.terminal_table=terminal_table
         self.authID = self.__user_login() 
         logpath = "/tmp/zabbix_tool.log"
         self.logger = Log(logpath,level="debug",is_console=debug, mbs=5, count=5)
-
         self.sepsign=None
+    def __zabbix_apiinfo(self): 
+        data=json.dumps({"jsonrpc":"2.0","method":"apiinfo.version","id":1,"params":{}})
+         
+        request = urllib2.Request(self.url, data) 
+        for key in self.header: 
+            request.add_header(key, self.header[key]) 
+     
+        try: 
+            result = urllib2.urlopen(request) 
+        except URLError as e: 
+            print("\033[041m 网络异常，请检查 !\033[0m", e)
+            exit(1)
+        else: 
+            response = json.loads(result.read()) 
+            result.close() 
+            print("zabbix version:[%s]"%response['result']  ) 
     def __user_login(self): 
         data = json.dumps({
                            "jsonrpc": "2.0",
@@ -672,20 +688,27 @@ class zabbix_api:
                 item_name = itemid_sub_list[1]
                 value_type = itemid_sub_list[4]
                 units = itemid_sub_list[6]
-                debug_msg="itemid:%s"%itemid
+                debug_msg="[report]itemid:%s"%itemid
                 self.logger.debug(debug_msg)
-                report_min,report_max,report_avg = self.__trend_get(itemid,time_from,time_till)
-                if value_type=="3":
-                    report_min=int(report_min)
-                    report_max=int(report_max)
-                    report_avg=int(report_avg)
-                    if units in units_list:
-                        report_min=self.__ByteFormat(report_min)
-                        report_max=self.__ByteFormat(report_max)
-                        report_avg=self.__ByteFormat(report_avg)
-                report_min=str(report_min) + units
-                report_max=str(report_max) + units
-                report_avg=str(report_avg) + units
+
+                # 检测是 item 类型是否是整数或者浮点数，不是则直接返回-1 
+                if value_type=="3" or value_type=="0":
+                    report_min,report_max,report_avg = self.__trend_get(itemid,time_from,time_till)
+                    if value_type=="3":
+                        report_min=int(report_min)
+                        report_max=int(report_max)
+                        report_avg=int(report_avg)
+                        if units in units_list:
+                            report_min=self.__ByteFormat(report_min)
+                            report_max=self.__ByteFormat(report_max)
+                            report_avg=self.__ByteFormat(report_avg)
+                    report_min=str(report_min) + units
+                    report_max=str(report_max) + units
+                    report_avg=str(report_avg) + units
+                else:
+                    report_min="-1"
+                    report_max="-1"
+                    report_avg="-1"
                 itemid=str(itemid)
                 report_output.append([host_info[0],host_info[2],item_name,report_min,report_max,report_avg])
         if self.output_sort:
@@ -2229,7 +2252,7 @@ class zabbix_api:
 
             
 if __name__ == "__main__":
-    print( __version__)
+    print("zabbix_manager:[%s]"% __version__)
     parser=argparse.ArgumentParser(usage='\033[43;37m#%(prog)s function param [options]\033[0m')
    
     #####################################
