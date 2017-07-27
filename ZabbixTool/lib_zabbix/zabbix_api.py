@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.7"
+__version__ = "1.2.8"
  
 import json 
 import urllib2 
@@ -77,6 +77,7 @@ class zabbix_api:
             else:
                 self.zapi=ZabbixAPI(server=zabbix_server)
             self.zapi.login(self.user,self.password)
+            print("zabbix version:[%s]"%self.zapi.api_version()) 
             self.__host_id__ = ''
             self.__hostgroup_id__ = ''
         else:
@@ -85,28 +86,11 @@ class zabbix_api:
 
         self.url = zabbix_server + '/api_jsonrpc.php'
         self.header = {"Content-Type":"application/json"}
-        self.__zabbix_apiinfo()
         self.terminal_table=terminal_table
         self.authID = self.__user_login() 
         logpath = "/tmp/zabbix_tool.log"
         self.logger = Log(logpath,level="debug",is_console=debug, mbs=5, count=5)
         self.sepsign=None
-    def __zabbix_apiinfo(self): 
-        data=json.dumps({"jsonrpc":"2.0","method":"apiinfo.version","id":1,"params":{}})
-         
-        request = urllib2.Request(self.url, data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-     
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("\033[041m 网络异常，请检查 !\033[0m", e)
-            exit(1)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            print("zabbix version:[%s]"%response['result']  ) 
     def __user_login(self): 
         data = json.dumps({
                            "jsonrpc": "2.0",
@@ -364,41 +348,24 @@ class zabbix_api:
         [eg1]#zabbix_api hostgroup_get
         [eg1]#zabbix_api hostgroup_get "Templates"
         '''
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"hostgroup.get", 
-                           "params":{ 
+        response=self.zapi.hostgroup.get({
                                      "output": "extend", 
                                      "filter": { 
                                                 "name": hostgroupName 
                                                 } 
-                                     }, 
-                           "auth":self.authID, 
-                           "id":1, 
-                           }) 
+                                     }) 
          
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e )
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                return 0
-            output = []
-            output.append(["hostgroupID","hostgroupName"])
-            for group in response['result']:
-                if  len(hostgroupName)==0:
-                    output.append([group["groupid"],group["name"]])
-                else:
-                    self.hostgroupID = group['groupid'] 
-                    return group['groupid'] 
-            self.__generate_output(output)
+        if len(response) == 0:
+            return 0
+        output = []
+        output.append(["hostgroupID","hostgroupName"])
+        for group in response:
+            if  len(hostgroupName)==0:
+                output.append([group["groupid"],group["name"]])
+            else:
+                self.hostgroupID = group['groupid'] 
+                return group['groupid'] 
+        self.__generate_output(output)
     def __hostgroup_get_name(self, groupid=''): 
         '''
         内部函数
@@ -458,57 +425,40 @@ class zabbix_api:
         # list_format
         # [item['itemid'],item['name'],item['key_'],item['delay'],item['value_type']],item['units']
 
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"item.get", 
-                           "params":{ 
+        response=self.zapi.item.get({
                                      "output":"extend",
                                      "hostids":host_ID,
-                                     }, 
-                           "auth":self.authID, 
-                           "id":1, 
-                           }) 
+                                     }) 
          
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                return 0
-            output=[]
-            output[:]=[]
-            output.append(["itemid","name","key_","update_time","value_type","history","units"])
-            for item in response['result']:
-                #########################################
-                # alt the $1 and $2 
-                #########################################
-                position = item['key_'].find('[')+1
-                if position:
-                    list_para = item['key_'][position:-1].split(",")
-                    # 将$1,$2等置换为真正name
-                    for para_a in range(len(list_para)):
-                        para='$'+str(para_a+1)
-                        item['name']=item['name'].replace(para,list_para[para_a])
-                if  len(itemName)==0:
+        if len(response) == 0:
+            return 0
+        output=[]
+        output[:]=[]
+        output.append(["itemid","name","key_","update_time","value_type","history","units"])
+        for item in response:
+            #########################################
+            # alt the $1 and $2 
+            #########################################
+            position = item['key_'].find('[')+1
+            if position:
+                list_para = item['key_'][position:-1].split(",")
+                # 将$1,$2等置换为真正name
+                for para_a in range(len(list_para)):
+                    para='$'+str(para_a+1)
+                    item['name']=item['name'].replace(para,list_para[para_a])
+            if  len(itemName)==0:
+                output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history'],item['units']])
+            else:
+                if item['name']==itemName:
                     output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history'],item['units']])
                 else:
-                    if item['name']==itemName:
+                    if my_compare.my_compare(item['name'],itemName,self.sepsign):
                         output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history'],item['units']])
-                    else:
-                        if my_compare.my_compare(item['name'],itemName,self.sepsign):
-                            output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history'],item['units']])
-            self.__generate_output(output)
-            if len(output[1:]):
-                return output[1:]
-            else:
-                return 0
+        self.__generate_output(output)
+        if len(output[1:]):
+            return output[1:]
+        else:
+            return 0
     def __item_search(self,item_ID=''): 
         '''
         内部函数
@@ -538,10 +488,10 @@ class zabbix_api:
                 return 0
             return response['result'][0]['value_type']
     # history
-    def history(self,item_ID,date_from,date_till): 
+    def history_get(self,item_ID,date_from,date_till): 
         '''
         return history of item
-        [eg1]#zabbix_api history 23296 "2016-08-01 00:00:00" "2016-09-01 00:00:00"
+        [eg1]#zabbix_api history_get 23296 "2016-08-01 00:00:00" "2016-09-01 00:00:00"
         [note]The date_till time must be within the historical data retention time
         '''
         dateFormat = "%Y-%m-%d %H:%M:%S"

@@ -209,7 +209,7 @@ class ZabbixAPI(object):
         else:
             return False
 
-    def do_request(self, json_obj,num_retries=3):
+    def do_request(self, json_obj):
         headers = {'Content-Type': 'application/json-rpc',
                    'User-Agent': 'python/zabbix_api'}
 
@@ -242,8 +242,6 @@ class ZabbixAPI(object):
         except socket.timeout as e:
             raise APITimeout("HTTP read timeout",)
         except urllib2.URLError as e:
-            if num_retries>0:  
-                return self.do_request(json_obj,num_retries-1) 
             if "Connection timed out" in e.message:
                 raise APITimeout("HTTP read timeout",)
             else:
