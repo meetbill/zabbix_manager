@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.8"
+__version__ = "1.2.9"
  
 import json 
 import urllib2 
@@ -415,6 +415,72 @@ class zabbix_api:
         if len(response) == 0:
             return 0
         return self.__generate_return("OK","create hostgroup [%s] OK"% response['groupids'][0])
+    def application_get(self, host_ID,app_name=""): 
+        '''
+        return a item list
+        [eg1]#zabbix_api application_get 10084
+        [eg2]#zabbix_api application_get 10084 "CPU"
+        '''
+        # @return list
+        # list_format
+        # [item['itemid'],item['name'],item['key_'],item['delay'],item['value_type']],item['units']
+
+        response=self.zapi.application.get({
+                                     "output":"extend",
+                                     "hostids":host_ID,
+                                     #"selectItems":["itemid"]
+                                     "filter":{"name":app_name} 
+                                     }) 
+         
+        if len(response) == 0:
+            return 0
+        output=[]
+        output[:]=[]
+        output.append(["applicationid","name"])
+        # {u'flags': u'0', u'hostid': u'10084', u'applicationid': u'503', u'name': u'app', u'templateids': [u'502']}
+        for application in response:
+            if len(app_name)==0:
+                output.append([application['applicationid'],application['name']])
+            else:
+                return application['applicationid']
+        self.__generate_output(output)
+        return 0
+    def __appitem_get(self,app_id): 
+        '''
+        获取某个 applicationid 的所有 item 列表,和 item_get 类似
+        return a item list
+        '''
+        # @return list
+        # list_format
+        # [item['itemid'],item['name'],item['key_'],item['delay'],item['value_type']],item['units']
+
+        response=self.zapi.item.get({
+                                     "output":"extend",
+                                     "applicationids":app_id,
+                                     }) 
+         
+        if len(response) == 0:
+            return 0
+        output=[]
+        output[:]=[]
+        output.append(["itemid","name","key_","update_time","value_type","history","units"])
+        for item in response:
+            #########################################
+            # alt the $1 and $2 
+            #########################################
+            position = item['key_'].find('[')+1
+            if position:
+                list_para = item['key_'][position:-1].split(",")
+               # 将$1,$2等置换为真正name
+                for para_a in range(len(list_para)):
+                    para='$'+str(para_a+1)
+                    item['name']=item['name'].replace(para,list_para[para_a])
+            output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history'],item['units']])
+        #self.__generate_output(output)
+        if len(output[1:]):
+            return output[1:]
+        else:
+            return 0
     def item_get(self, host_ID,itemName=''): 
         '''
         return a item list
@@ -628,7 +694,9 @@ class zabbix_api:
         print(xls_range)
         host_list = self._hosts_get()
         for host_info in host_list: 
+            ######################################################
             itemid_all_list = self.item_get(host_info[0],itemName)
+            ######################################################
             if itemid_all_list == 0:
                 debug_msg="host %s No related monitoring items found"% host_info[0]
                 self.logger.debug(debug_msg)
@@ -677,6 +745,119 @@ class zabbix_api:
                 table_show.append(report_item)
             table=SingleTable(table_show)
             table.title = itemName
+            print(table.table)
+        else:
+            print("hostid",'\t',"name",'\t',"itemName",'\t',"min",'\t',"max","avg")
+            for report_item in report_output:
+                for report_item_i in report_item:
+                    print(report_item_i,'\t',end=" ")
+                print() 
+        if export_xls["xls"] == "ON":
+            xlswriter = XLSWriter.XLSWriter(export_xls["xls_name"])
+            # title
+            if export_xls["title"] == 'ON':
+                xlswriter.add_big_head(self.logo_show,0,0,6,title_name=export_xls["title_name"],sheet_name=sheetName)
+            else:
+                xlswriter.add_big_head(self.logo_show,0,0,sheet_name=sheetName)
+            # 报告周期
+            xlswriter.add_header(u"报告周期:"+title_table,6,sheet_name=sheetName)
+            xlswriter.setcol_width([10,50,35,10,10,10],sheet_name=sheetName)
+            
+            ## 范围
+            xlswriter.add_remark(u"范围:"+xls_range,6,sheet_name=sheetName)
+            xlswriter.writerow(["hostid","name","itemName","min","max","avg"],sheet_name=sheetName,border=True,pattern_n=22)
+            
+            ## 输出内容
+            for report_item in report_output:
+                xlswriter.writerow(report_item,sheet_name=sheetName,border=True)
+            xlswriter.save()
+        return 0
+    def _report_app(self,appName,date_from,date_till,export_xls,select_condition): 
+
+        units_list = ["B","vps","bps","sps"]
+
+        # 设置为调用的函数不输出
+        self.output = False
+        dateFormat = "%Y-%m-%d %H:%M:%S"
+        #dateFormat = "%Y-%m-%d"
+        report_output=[]
+        
+        try:
+            startTime =  time.strptime(date_from,dateFormat)
+            endTime =  time.strptime(date_till,dateFormat)
+            sheetName =  time.strftime('%Y%m%d',startTime) + "_TO_" +time.strftime('%Y%m%d',endTime)
+            title_table =  date_from + "~" + date_till
+            info_msg=str(sheetName)
+            self.logger.info(info_msg)
+        except:
+            err_msg("时间格式 ['2016-05-01 00:00:00'] ['2016-06-01 00:00:00']")
+
+        
+        time_from = int(time.mktime(startTime))+1
+        time_till = int(time.mktime(endTime))
+        if time_from > time_till:
+            return self.__generate_return("ERR","date_till must after the date_from time")
+        # 获取需要输出报表信息的host_list
+        xls_range = self.__get_select_condition_info()
+        if not xls_range:
+            xls_range = u"ALL"
+        print(xls_range)
+        host_list = self._hosts_get()
+        for host_info in host_list: 
+            ######################################################
+            applicationid = self.application_get(host_info[0],appName)
+            # 如果某个 host 没有此 application 则跳过
+            if not applicationid:
+                continue
+            itemid_all_list = self.__appitem_get(applicationid)
+            ######################################################
+            if itemid_all_list == 0:
+                debug_msg="host %s No related monitoring items found"% host_info[0]
+                self.logger.debug(debug_msg)
+                continue
+            for itemid_sub_list in itemid_all_list:
+                itemid = itemid_sub_list[0]
+                item_name = itemid_sub_list[1]
+                value_type = itemid_sub_list[4]
+                units = itemid_sub_list[6]
+                debug_msg="[report]itemid:%s"%itemid
+                self.logger.debug(debug_msg)
+
+                # 检测是 item 类型是否是整数或者浮点数，不是则直接返回-1 
+                if value_type=="3" or value_type=="0":
+                    report_min,report_max,report_avg = self.__trend_get(itemid,time_from,time_till)
+                    if value_type=="3":
+                        report_min=int(report_min)
+                        report_max=int(report_max)
+                        report_avg=int(report_avg)
+                        if units in units_list:
+                            report_min=self.__ByteFormat(report_min)
+                            report_max=self.__ByteFormat(report_max)
+                            report_avg=self.__ByteFormat(report_avg)
+                    report_min=str(report_min) + units
+                    report_max=str(report_max) + units
+                    report_avg=str(report_avg) + units
+                else:
+                    report_min="-1"
+                    report_max="-1"
+                    report_avg="-1"
+                itemid=str(itemid)
+                report_output.append([host_info[0],host_info[2],item_name,report_min,report_max,report_avg])
+        if self.output_sort:
+            # 排序，如果是false，是升序
+            # 如果是true，是降序
+            if self.output_sort in [1,4,5,6]:
+                reverse = self.reverse
+                report_output = sorted(report_output,key=lambda x:float(x[self.output_sort-1]),reverse=reverse)
+            else:
+                print("Does not support this column sorting")
+        ################################################################output
+        if self.terminal_table:
+            table_show=[]
+            table_show.append(["hostid","name","itemName","min","max","avg"])
+            for report_item in report_output:
+                table_show.append(report_item)
+            table=SingleTable(table_show)
             print(table.table)
         else:
             print("hostid",'\t',"name",'\t',"itemName",'\t',"min",'\t',"max","avg")
@@ -2212,6 +2393,11 @@ if __name__ == "__main__":
                         metavar=('item_name','date_from','date_till'),
                         dest='report',
                         help='eg:"CPU" "2016-06-03 00:00:00" "2016-06-10 00:00:00"')
+    parser_report.add_argument('--report_app',
+                        nargs=3,
+                        metavar=('app_name','date_from','date_till'),
+                        dest='report_app',
+                        help='eg:"CPU" "2016-06-03 00:00:00" "2016-06-10 00:00:00"')
     parser_report.add_argument('--report_available',
                         nargs=3,
                         metavar=('itemName','date_from','date_till'),
@@ -2302,7 +2488,7 @@ if __name__ == "__main__":
                 profile = args.profile
             else:
                 if os.path.exists(zabbix_config):
-                    config = ConfigParser.ConfigParser()
+                    config=ConfigParser.ConfigParser()
                     config.read(zabbix_config)
                     print(config.sections())
                 else:
@@ -2365,6 +2551,8 @@ if __name__ == "__main__":
 
         if args.report:
             zabbix._report(args.report[0],args.report[1],args.report[2],export_xls,select_condition)
+        if args.report_app:
+            zabbix._report_app(args.report_app[0],args.report_app[1],args.report_app[2],export_xls,select_condition)
         if args.report_flow:
             zabbix._report_flow(args.report_flow[0],args.report_flow[1],export_xls,hosts_file)
         if args.report_available:

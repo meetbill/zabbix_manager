@@ -27,6 +27,7 @@ Daily we need to export the report, use zabbix manager can export xls file using
 ## version
 ----
 * V1.2
+    * v1.2.9，2017-08-01 更新 (1)增加 application_get 获取 application 列表功能，(2)增加 --report_app 导出特定 application 的日常使用报表
     * v1.2.8，2017-07-28 更新 (1)增加3次重试机制
     * v1.2.7，2017-07-25 更新 (1)导出报表时，只计算 item_type 为 0(浮点数) 或者 3(整数) 的数据，其他item返回"-1" (2)执行命令时会输出 zabbix server 的版本号
     * v1.2.6，2017-07-21 更新 (1)[XLSWriter](https://github.com/BillWang139967/XLSWriter) 使之可控制是否显示logo (2)可通过配置以适应 apache 搭建的 zabbix server
