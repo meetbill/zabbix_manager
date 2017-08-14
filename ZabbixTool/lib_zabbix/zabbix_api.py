@@ -24,7 +24,7 @@ zabbix_config = '/etc/zabbix_tool/zabbix_config.ini'
 zabbix_setting = '/etc/zabbix_tool/zabbix_setting.ini'
 
 from colorclass import Color
-from terminaltables import SingleTable
+from terminaltables import AsciiTable
 import my_sort
 import my_compare
 import XLSWriter
@@ -2315,7 +2315,8 @@ class zabbix_api:
         '''
         if self.output:
             if self.terminal_table:
-                table=SingleTable(output_list)
+                #table=SingleTable(output_list)
+                table=AsciiTable(output_list)
                 print(table.table)
             else:
                 for output in output_list:
