@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.9"
+__version__ = "1.2.10"
  
 import json 
 import urllib2 
@@ -743,7 +743,7 @@ class zabbix_api:
             table_show.append(["hostid","name","itemName","min","max","avg"])
             for report_item in report_output:
                 table_show.append(report_item)
-            table=SingleTable(table_show)
+            table=AsciiTable(table_show)
             table.title = itemName
             print(table.table)
         else:
@@ -857,7 +857,7 @@ class zabbix_api:
             table_show.append(["hostid","name","itemName","min","max","avg"])
             for report_item in report_output:
                 table_show.append(report_item)
-            table=SingleTable(table_show)
+            table=AsciiTable(table_show)
             print(table.table)
         else:
             print("hostid",'\t',"name",'\t',"itemName",'\t',"min",'\t',"max","avg")
@@ -1031,7 +1031,7 @@ class zabbix_api:
             table_show.append([u"hostid",u"资源类型",u"itemName",u"期望值(%)",u"平均值(%)",u"差值(%)"])
             for report_item in report_output:
                 table_show.append(report_item)
-            table=SingleTable(table_show)
+            table=AsciiTable(table_show)
             table.title = itemName
             print(table.table)
         else:
@@ -1121,7 +1121,7 @@ class zabbix_api:
             table_show.append(["hostname","ip","Name","Problems","OK","prevvalue"])
             for report_item in report_output:
                 table_show.append(report_item)
-            table=SingleTable(table_show)
+            table=AsciiTable(table_show)
             table.title = "Availability report"
             print(table.table)
         else:
@@ -2315,7 +2315,7 @@ class zabbix_api:
         '''
         if self.output:
             if self.terminal_table:
-                #table=SingleTable(output_list)
+                #table=AsciiTable(output_list)
                 table=AsciiTable(output_list)
                 print(table.table)
             else:
