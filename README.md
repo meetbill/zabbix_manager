@@ -4,6 +4,7 @@
 > * [zabbix管理工具手册(w3cschool)](http://www.w3cschool.cn/zabbix_manager/)
 
 ## Supported versions
+
 > * zabbix3.0.X
 
 ## 功能
@@ -89,7 +90,7 @@ $ git push -f origin master
 
 ## 小额捐款
 
-如果你觉得zabbix_manager对你有帮助, 可以对作者进行小额捐款(支付宝)
+如果觉得 `zabbix_manager` 对您有帮助，可以请笔者喝杯咖啡
 
 ![Screenshot](images/5.jpg)
 
