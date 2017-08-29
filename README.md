@@ -28,15 +28,16 @@ Daily we need to export the report, use zabbix manager can export xls file using
 ## version
 ----
 * V1.2
-    * v1.2.10，2017-08-26 修复 导出报表时设置 --table `SingleTable` 没有定义的错误
-    * v1.2.9，2017-08-01 更新 (1)增加 application_get 获取 application 列表功能，(2)增加 --report_app 导出特定 application 的日常使用报表
-    * v1.2.8，2017-07-28 更新 (1)增加3次重试机制
-    * v1.2.7，2017-07-25 更新 (1)导出报表时，只计算 item_type 为 0(浮点数) 或者 3(整数) 的数据，其他item返回"-1" (2)执行命令时会输出 zabbix server 的版本号
-    * v1.2.6，2017-07-21 更新 (1)[XLSWriter](https://github.com/BillWang139967/XLSWriter) 使之可控制是否显示logo (2)可通过配置以适应 apache 搭建的 zabbix server
-    * v1.2.4，2017-06-15 增加 输出日常使用报表时会在值后面加上单位(K/M/G也会自动进行换算)
-    * v1.2.3，2017-04-04 增加 -sign 参数(设置搜索分割符)
-    * v1.2.1，2016-12-25 增加对主机批量 link 、clear 模板操作
-    * v1.2.0，2016-11-27 修改 zabbix_api.py 调用方式(报表类函数不变)
+    * v1.2.11，2017-08-29 [更新] item_get 只输出已启用的监控项 [增加] 增加[report_key](https://github.com/BillWang139967/zabbix_manager/wiki/app_report_key)
+    * v1.2.10，2017-08-26 [修复] 导出报表时设置 --table `SingleTable` 没有定义的错误
+    * v1.2.9，2017-08-01  [更新] 增加 application_get 获取 application 列表功能 [增加] 增加[report_app](https://github.com/BillWang139967/zabbix_manager/wiki/app_report_app)
+    * v1.2.8，2017-07-28  [更新] 增加3次重试机制
+    * v1.2.7，2017-07-25  [更新] 导出报表时，只计算 item_type 为 0(浮点数) 或者 3(整数) 的数据，其他item返回"-1" (2)执行命令时会输出 zabbix server 的版本号
+    * v1.2.6，2017-07-21  [更新] 1 [XLSWriter](https://github.com/BillWang139967/XLSWriter) 使之可控制是否显示logo (2)可通过配置以适应 apache 搭建的 zabbix server
+    * v1.2.4，2017-06-15  [增加] 输出日常使用报表时会在值后面加上单位(K/M/G也会自动进行换算)
+    * v1.2.3，2017-04-04  [增加] -sign 参数(设置搜索分割符)
+    * v1.2.1，2016-12-25  [增加] 对主机批量 link 、clear 模板操作
+    * v1.2.0，2016-11-27  [修改] zabbix_api.py 调用方式(报表类函数不变)
 * V1.1
     * v1.1.7，2016-11-25 优化程序
     * v1.1.6，2016-11-08 add profile,可以通过 profile 参数选择配置文件中不同的 section
