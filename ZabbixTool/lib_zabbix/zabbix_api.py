@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.11"
+__version__ = "1.2.12"
  
 import json 
 import urllib2 
@@ -16,6 +16,7 @@ import unicodedata
 import config
 from pydoc import render_doc
 from w_lib.zabbix_api_lib import ZabbixAPI
+import re
 
 root_path = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(root_path)
@@ -541,7 +542,6 @@ class zabbix_api:
                                      "output":"extend",
                                      "hostids":host_ID,
                                      "monitored":True,
-                                     "filter":{"key_":key_name},
                                      }) 
          
         if len(response) == 0:
@@ -559,7 +559,8 @@ class zabbix_api:
                 for para_a in range(len(list_para)):
                     para='$'+str(para_a+1)
                     item['name']=item['name'].replace(para,list_para[para_a])
-            output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history'],item['units']])
+            if re.match(key_name, item['key_']):
+                output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history'],item['units']])
         # self.__generate_output(output)
         if len(output):
             return output
