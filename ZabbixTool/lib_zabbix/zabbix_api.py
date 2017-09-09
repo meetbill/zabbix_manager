@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.12"
+__version__ = "1.2.13"
  
 import json 
 import urllib2 
@@ -2002,10 +2002,10 @@ class zabbix_api:
                     return action['actionid']
             self.__generate_output(output)
             return 0
-    def action_autoreg_create(self, actionName,hostgroupName): 
+    def action_autoreg_create(self, actionName,metaname,hostgroupName): 
         '''
         create autoreg action
-        [eg1]#zabbix_api action_autoreg_create "ceshi_action" "Linux servers"
+        [eg1]#zabbix_api action_autoreg_create "ceshi_action" "Linux" "Linux servers"
         '''
         if self.action_get(actionName):
             output_print={}
@@ -2039,7 +2039,7 @@ class zabbix_api:
                                         {
                                             "conditiontype": 24,
                                             "operator": 2,
-                                            "value": "Linux"
+                                            "value": metaname
                                         }
                                    ]
                                },

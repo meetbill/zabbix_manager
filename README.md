@@ -28,6 +28,7 @@ Daily we need to export the report, use zabbix manager can export xls file using
 ## version
 ----
 * V1.2
+    * v1.2.13，2017-09-09 [更新] agent 自动注册功能修改参数，增加 hostmeta 参数
     * v1.2.12，2017-08-30 [更新] 报表 [report_key](https://github.com/BillWang139967/zabbix_manager/wiki/app_report_key) 修改为使用 key 的正则表达式进行搜索
     * v1.2.11，2017-08-29 [更新] item_get 只输出已启用的监控项 [增加] 增加 [report_key](https://github.com/BillWang139967/zabbix_manager/wiki/app_report_key)
     * v1.2.10，2017-08-26 [修复] 导出报表时设置 --table `SingleTable` 没有定义的错误
