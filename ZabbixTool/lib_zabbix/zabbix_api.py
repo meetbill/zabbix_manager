@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.14"
+__version__ = "1.2.15"
  
 import json 
 import urllib2 
@@ -21,8 +21,9 @@ import re
 root_path = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(root_path)
 sys.path.insert(0, os.path.join(root_path, 'w_lib'))
-zabbix_config = '/etc/zabbix_tool/zabbix_config.ini'
-zabbix_setting = '/etc/zabbix_tool/zabbix_setting.ini'
+zabbix_config = os.path.exists("/etc/zabbix_tool/zabbix_config.ini") and  "/etc/zabbix_tool/zabbix_config.ini" or "./etc/zabbix_config.ini"
+zabbix_setting = os.path.exists("/etc/zabbix_tool/zabbix_setting.ini") and "/etc/zabbix_tool/zabbix_setting.ini" or "./etc/zabbix_setting.ini"
+
 
 from colorclass import Color
 from terminaltables import AsciiTable
@@ -44,6 +45,10 @@ def warn_msg(msg):
 class zabbix_api: 
     def __init__(self,terminal_table=False,debug=False,output=True,output_sort=False,sort_reverse=False,profile="zabbixserver"): 
         web_access = False
+        logpath = "/tmp/zabbix_tool.log"
+        self.logger = Log(logpath,level="debug",is_console=debug, mbs=5, count=5)
+        self.logger.debug("[zabbix_config ]:%s"%zabbix_config)
+        self.logger.debug("[zabbix_setting]:%s"%zabbix_setting)
         if os.path.exists(zabbix_setting):
             config = ConfigParser.ConfigParser()
             config.read(zabbix_setting)
@@ -89,8 +94,6 @@ class zabbix_api:
         self.header = {"Content-Type":"application/json"}
         self.terminal_table=terminal_table
         self.authID = self.__user_login() 
-        logpath = "/tmp/zabbix_tool.log"
-        self.logger = Log(logpath,level="debug",is_console=debug, mbs=5, count=5)
         self.sepsign=None
     def __user_login(self): 
         data = json.dumps({

@@ -28,7 +28,7 @@ Daily we need to export the report, use zabbix manager can export xls file using
 ## version
 ----
 * V1.2
-    * v1.2.14，2017-09-11 [更新] `--hostid/--hostgroupid` 参数可以通过直接输入`主机名/主机组名`进行获取主机列表
+    * v1.2.15，2017-09-11 [更新] `--hostid/--hostgroupid` 参数可以通过直接输入`主机名/主机组名`进行获取主机列表,检查配置文件不存在时会使用本目录下`etc`下的配置文件
     * v1.2.13，2017-09-09 [更新] agent 自动注册功能修改参数，增加 hostmeta 参数
     * v1.2.12，2017-08-30 [更新] 报表 [report_key](https://github.com/BillWang139967/zabbix_manager/wiki/app_report_key) 修改为使用 key 的正则表达式进行搜索
     * v1.2.11，2017-08-29 [更新] item_get 只输出已启用的监控项 [增加] 增加 [report_key](https://github.com/BillWang139967/zabbix_manager/wiki/app_report_key)
@@ -40,13 +40,13 @@ Daily we need to export the report, use zabbix manager can export xls file using
     * v1.2.4，2017-06-15  [增加] 输出日常使用报表时会在值后面加上单位(K/M/G也会自动进行换算)
     * v1.2.3，2017-04-04  [增加] -sign 参数(设置搜索分割符)
     * v1.2.1，2016-12-25  [增加] 对主机批量 link 、clear 模板操作
-    * v1.2.0，2016-11-27  [修改] zabbix_api.py 调用方式(报表类函数不变)
+    * v1.2.0，2016-11-27  [修改] `zabbix_api` 调用方式(报表类函数不变)
 * V1.1
     * v1.1.7，2016-11-25 优化程序
-    * v1.1.6，2016-11-08 add profile,可以通过 profile 参数选择配置文件中不同的 section
-    * v1.1.5，2016-10-24 add report_available2 可以对特定 item 进行输出，除报表项外，其他函数统一输出函数
-    * v1.1.4，2016-10-24 add issues,获取最近问题
-    * v1.1.3，2016-09-09 add report_available2,排序可设置
+    * v1.1.6，2016-11-08 add 通过 profile 参数选择配置文件中不同的 `section`
+    * v1.1.5，2016-10-24 add `report_available2` 可以对特定 item 进行输出，除报表项外，其他函数统一输出函数
+    * v1.1.4，2016-10-24 add `issues`获取最近问题
+    * v1.1.3，2016-09-09 add report_available2,可设置排序
     * v1.1.2，2016-09-05 add zabbix_manager gui
     * v1.1.1，2016-08-22 add mysql_quota
     * v1.1.0，2016-07-14 release 1.1.0
