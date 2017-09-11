@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.13"
+__version__ = "1.2.14"
  
 import json 
 import urllib2 
@@ -160,7 +160,14 @@ class zabbix_api:
             group_list=[]
             group_list[:]=[]
             for i in hostgroupID.split(','):
-                group_list.append(i)
+                try:
+                    int(i)  
+                    hostgroup_id = i
+                except:
+                    hostgroup_id = self.hostgroup_get(i)
+                    if not hostgroup_id:
+                        continue
+                group_list.append(hostgroup_id)
             data=json.dumps({
                     "jsonrpc": "2.0",
                     "method": "host.get",
@@ -176,7 +183,15 @@ class zabbix_api:
             host_list=[]
             host_list[:]=[]
             for i in hostID.split(','):
-                host_list.append(i)
+                # 判断输入的 hostID 是数字还是字符串(主机名)
+                try:
+                    int(i)  
+                    host_id = i
+                except:
+                    host_id = self.host_get(i)
+                    if not host_id:
+                        continue
+                host_list.append(host_id)
             data=json.dumps({
                     "jsonrpc": "2.0",
                     "method": "host.get",
@@ -220,6 +235,21 @@ class zabbix_api:
             for host in response['result']:      
                 all_host_list.append((host['hostid'],host['host'],host['name'],host['interfaces'][0]["ip"]))
             return all_host_list
+    def host_list(self):
+        '''
+        get host list
+        [eg1]#zabbix_api host_list
+        '''
+        host_list = self._hosts_get()
+        hostlist_info = []
+        hostlist_info.append(["host_id","host_name","host_ip"])
+        for host in host_list:
+            host_id = host[0]
+            host_name = host[2]
+            host_ip = host[3]
+            hostlist_info.append([host_id,host_name,host_ip])
+        self.__generate_output(hostlist_info)
+
     def _hosts_get(self):
         '''
         获取特定条件下的主机列表
