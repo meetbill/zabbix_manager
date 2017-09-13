@@ -28,6 +28,7 @@ Daily we need to export the report, use zabbix manager can export xls file using
 ## version
 ----
 * V1.2
+    * v1.2.16，2017-09-13 [更新] `host_get` 输出项中，模板由之前获取的 `host(Template name)` 修改为 `name(Visible name)`
     * v1.2.15，2017-09-11 [更新] `--hostid/--hostgroupid` 参数可以通过直接输入`主机名/主机组名`进行获取主机列表,检查配置文件不存在时会使用本目录下`etc`下的配置文件
     * v1.2.13，2017-09-09 [更新] agent 自动注册功能修改参数，增加 hostmeta 参数
     * v1.2.12，2017-08-30 [更新] 报表 [report_key](https://github.com/BillWang139967/zabbix_manager/wiki/app_report_key) 修改为使用 key 的正则表达式进行搜索

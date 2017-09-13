@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.15"
+__version__ = "1.2.16"
  
 import json 
 import urllib2 
@@ -131,7 +131,7 @@ class zabbix_api:
         response=self.zapi.host.get({
                       "output": ["hostid","host","name","status","available"],
                       "filter":{"name":hostName},
-                      "selectParentTemplates":["host"],
+                      "selectParentTemplates":["name"],
                       "selectInterfaces":["ip"]})
         if len(response) == 0:
             return 0
@@ -142,7 +142,7 @@ class zabbix_api:
                 template = ""
                 if len(host["parentTemplates"]):
                     for template_item in host["parentTemplates"]:
-                        template =  template_item["host"] + '\n'+ template
+                        template =  template_item["name"] + '\n'+ template
                 output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']],template])
             else:
                 #output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
@@ -2640,8 +2640,9 @@ if __name__ == "__main__":
     #######################################################################################################
     if len(sys.argv)==1:
         from pydoc import render_doc
-        print(render_doc(zabbix_api))
+        print(render_doc(zabbix_api,title="[zabbix_api Documentation] %s"))
         print(parser.print_help())
+        sys.exit()
     else:
         #args=parser.parse_args()
         args, unknown_args = parser.parse_known_args()
