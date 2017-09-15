@@ -565,7 +565,7 @@ class zabbix_api:
     def item_list(self, host_ID,application): 
         '''
         return a item list
-        [eg2]#zabbix_api item_get 10084 "Free disk"
+        [eg2]#zabbix_api item_get 10084 "CPU"
         '''
         # @return list
         # list_format
