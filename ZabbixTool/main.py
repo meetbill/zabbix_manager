@@ -50,6 +50,7 @@ def week_report():
     # 3 发送邮件
     sml.sendMail()
 def create_config():
+    monit_config="/etc/monit_config.py"
     applitions="s3,yun"
 
     zabbix=zabbix_api(output=False)
@@ -77,10 +78,14 @@ def create_config():
     #print hostname_ip
     hostname_key=json.dumps(hostname_key,indent=4)
     #print hostname_key
-    config_file="hostname_ip="+hostname_ip+"\n"
 
-    config_file=config_file+"hostname_key="+hostname_key+"\n"
-    fo = open("/root/.config_file", "wb")
+    # 生成配置文件
+    config_file = "#!/usr/bin/python\n#coding=utf8\n"
+    config_file = config_file + "hostname_ip="+hostname_ip+"\n"
+    config_file = config_file + "hostname_key="+hostname_key+"\n"
+
+    # 写入配置文件
+    fo = open(monit_config, "wb")
     fo.write(config_file)
     fo.close()
 def status():
