@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.2.16"
+__version__ = "1.3.01"
  
 import json 
 import urllib2 
@@ -252,6 +252,8 @@ class zabbix_api:
             host_ip = host[3]
             hostlist_info.append([host_id,host_name,host_ip])
         self.__generate_output(hostlist_info)
+        # 只返回主机信息记录
+        return hostlist_info[1:]
 
     def _hosts_get(self):
         '''
@@ -558,6 +560,59 @@ class zabbix_api:
         self.__generate_output(output)
         if len(output[1:]):
             return output[1:]
+        else:
+            return 0
+    def item_list(self, host_ID,application): 
+        '''
+        return a item list
+        [eg2]#zabbix_api item_get 10084 "Free disk"
+        '''
+        # @return list
+        # list_format
+        # [item['itemid'],item['name'],item['key_'],item['delay'],item['value_type']],item['units']
+
+        
+        applicationids=[]
+        applicationids[:]=[]
+        for i in application.split(','):
+            try:
+                int(i)  
+                applicationid = i
+            except:
+                applicationid = self.application_get(host_ID,i)
+                if not applicationid:
+                    continue
+            applicationids.append(applicationid)
+
+        response=self.zapi.item.get({
+                                     "output":"extend",
+                                     "hostids":host_ID,
+                                     "applicationids":applicationids,
+                                     "monitored":True,
+                                     }) 
+        if len(response) == 0:
+            return 0
+        output=[]
+        output[:]=[]
+        itemkey_list=[]
+        itemkey_list[:]=[]
+        output.append(["itemid","name","key_","update_time","value_type","history","units"])
+        for item in response:
+            #########################################
+            # alt the $1 and $2 
+            #########################################
+            position = item['key_'].find('[')+1
+            if position:
+                list_para = item['key_'][position:-1].split(",")
+                # 将$1,$2等置换为真正name
+                for para_a in range(len(list_para)):
+                    para='$'+str(para_a+1)
+                    item['name']=item['name'].replace(para,list_para[para_a])
+            output.append([item['itemid'],item['name'],item['key_'],item['delay'],item['value_type'],item['history'],item['units']])
+            itemkey_list.append(item['key_'])
+        self.__generate_output(output)
+        if len(itemkey_list):
+            return itemkey_list
         else:
             return 0
     def __item_get2(self, host_ID,key_name): 
@@ -2396,11 +2451,11 @@ class zabbix_api:
             return 0
         output = []
         output[:] = []
-        output.append(["hostname","trigger","time","prevvalue"])
+        output.append(["hostname","key_","trigger","time","prevvalue"])
         for trigger in result:
-            output.append([trigger["hosts"][0]["name"],trigger["description"],time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(float(trigger["lastchange"]))),trigger["items"][0]["prevvalue"]+trigger["items"][0]["units"]])
+            output.append([trigger["hosts"][0]["name"],trigger["items"][0]["key_"],trigger["description"],time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(float(trigger["lastchange"]))),trigger["items"][0]["prevvalue"]+trigger["items"][0]["units"]])
         self.__generate_output(output)
-        return 0
+        return output[1:]
          
     def __event_get(self, triggerid='',time_from='',time_till='',value=""): 
         '''

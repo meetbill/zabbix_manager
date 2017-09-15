@@ -10,17 +10,18 @@
 """
 import sys
 import os
-import datetime
 root_path = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(root_path)
 sys.path.insert(0, os.path.join(root_path, 'lib_zabbix'))
 sys.path.insert(0, os.path.join(root_path, 'py_menu/my_lib'))
 
-import date
 from zabbix_api import zabbix_api
-import pyMail
+import json
 
 def week_report():
+    import date
+    import datetime
+    import pyMail
     weekreport_name = "/opt/weekreport.xls"
     d = datetime.datetime.now()
     date_from,date_to = date.week_get(d)
@@ -48,19 +49,93 @@ def week_report():
     sml.setMailInfo('paramiao@gmail.com','测试','正文','plain',weekreport_name)
     # 3 发送邮件
     sml.sendMail()
+def create_config():
+    applitions="s3,yun"
+
+    zabbix=zabbix_api(output=False)
+
+    # 主机名和 IP 字典
+    hostname_ip={}
+
+    # 主机名和 监控项字典
+    hostname_key={}
+
+    host_list=zabbix.host_list()
+    for host in host_list:
+        # host[0]---hostid ,host[1]---hostname,host[2]---hostip
+        hostid=host[0]
+        hostname=host[1]
+        hostip=host[2]
+        hostname_ip[hostname]=hostip
+
+        items = zabbix.item_list(hostid,applitions)
+        if not items:
+            items = []
+        hostname_key[hostname]=items
+
+    hostname_ip=json.dumps(hostname_ip,indent=4)
+    #print hostname_ip
+    hostname_key=json.dumps(hostname_key,indent=4)
+    #print hostname_key
+    config_file="hostname_ip="+hostname_ip+"\n"
+
+    config_file=config_file+"hostname_key="+hostname_key+"\n"
+    fo = open("/root/.config_file", "wb")
+    fo.write(config_file)
+    fo.close()
+def status():
+    zabbix=zabbix_api(output=False)
+    host_ip={}
+    host_list=zabbix.host_list()
+    #print host_list
+    for host in host_list:
+        host_ip[host[1]]=host[2]
+    print host_ip
+    #for host in host_list:
+    issues_list=zabbix.issues()
+    exception_host=[]
+
+    ## 异常主机
+    for issues in issues_list:
+        exception_host.append(issues[0])
+    exception_host=list(set(exception_host))
+    print "exception_host",exception_host
+
+    ## 正常主机
+    normal_host=[]
+    for host in host_ip:
+        if host not in exception_host:
+            normal_host.append(host)
+    print "normal_host",normal_host
+
 
 # 函数作为模块调用 不必理会
 if __name__ == '__main__':
-    import sys
-    import inspect
-
+    import sys, inspect
     if len(sys.argv) < 2:
         print "Usage:"
-        for k, v in globals().items():
+        for k, v in sorted(globals().items(), key=lambda item: item[0]):
             if inspect.isfunction(v) and k[0] != "_":
-                print sys.argv[0], k, str(v.func_code.co_varnames[:v.func_code.co_argcount])[1:-1].replace(",", "")
+                args, __, __, defaults = inspect.getargspec(v)
+                if defaults:
+                    print sys.argv[0], k, str(args[:-len(defaults)])[1:-1].replace(",", ""), \
+                          str(["%s=%s" % (a, b) for a, b in zip(args[-len(defaults):], defaults)])[1:-1].replace(",", "")
+                else:
+                    print sys.argv[0], k, str(v.func_code.co_varnames[:v.func_code.co_argcount])[1:-1].replace(",", "")
         sys.exit(-1)
     else:
         func = eval(sys.argv[1])
         args = sys.argv[2:]
-        func(*args)
+        try:
+            r = func(*args)
+        except Exception, e:
+            print "Usage:"
+            print "\t", "python %s" % sys.argv[1], str(func.func_code.co_varnames[:func.func_code.co_argcount])[1:-1].replace(",", "")
+            if func.func_doc:
+                print "\n".join(["\t\t" + line.strip() for line in func.func_doc.strip().split("\n")])
+            print e
+            r = -1
+            import traceback
+            traceback.print_exc()
+        if isinstance(r, int):
+            sys.exit(r)

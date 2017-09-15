@@ -27,6 +27,8 @@ Daily we need to export the report, use zabbix manager can export xls file using
 
 ## version
 ----
+* V1.3
+    * v1.3.01，2017-09-15 [更新] 增加 `item_list`方法，`issues` 方法输出添加`item key`信息
 * V1.2
     * v1.2.16，2017-09-13 [更新] `host_get` 输出项中，模板由之前获取的 `host(Template name)` 修改为 `name(Visible name)`
     * v1.2.15，2017-09-11 [更新] `--hostid/--hostgroupid` 参数可以通过直接输入`主机名/主机组名`进行获取主机列表,检查配置文件不存在时会使用本目录下`etc`下的配置文件
