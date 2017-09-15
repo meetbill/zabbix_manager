@@ -10,9 +10,10 @@
 #            M A I N             #
 #================================#
 
-VERSION=1.0.5
-TIME="2017-06-09"
-TOOL_PATH=$(cd `dirname $0`; pwd)
+VERSION=1.0.6
+TIME="2017-09-16"
+TOOL_PATH=`S=\`readlink "$0"\`; [ -z "$S"  ] && S=$0; dirname $S`
+#TOOL_PATH=$(cd `dirname $0`; pwd)
 export TOOL_PATH
 cd  ${TOOL_PATH}
 MENUPATH=${TOOL_PATH}/sh_menu/Config            # The default menu file path

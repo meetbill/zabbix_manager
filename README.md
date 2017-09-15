@@ -25,8 +25,8 @@ fourth, create action
 
 Daily we need to export the report, use zabbix manager can export xls file using zabbix_manager will greatly save us time
 
-## version
-----
+## zabbix_api version
+
 * V1.3
     * v1.3.01，2017-09-15 [更新] 增加 `item_list`方法，`issues` 方法输出添加`item key`信息
 * V1.2

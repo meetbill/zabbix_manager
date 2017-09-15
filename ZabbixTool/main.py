@@ -8,15 +8,17 @@
 # Description:
 
 """
+__version__ = "1.0.1"
 import sys
 import os
 root_path = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(root_path)
 sys.path.insert(0, os.path.join(root_path, 'lib_zabbix'))
-sys.path.insert(0, os.path.join(root_path, 'py_menu/my_lib'))
+sys.path.insert(0, os.path.join(root_path, 'py_tool/my_lib'))
 
 from zabbix_api import zabbix_api
 import json
+zabbix_tool="/etc/zabbix_tool/zabbix_tool.ini"
 
 def week_report():
     import date
@@ -50,8 +52,11 @@ def week_report():
     # 3 发送邮件
     sml.sendMail()
 def create_config():
-    monit_config="/etc/monit_config.py"
-    applitions="s3,yun"
+    import ConfigParser
+    config = ConfigParser.ConfigParser()
+    config.read(zabbix_tool)
+    applitions = config.get("create_file", "applitions")
+    monit_config = config.get("create_file","monit_config")
 
     zabbix=zabbix_api(output=False)
 
@@ -112,6 +117,8 @@ def status():
         if host not in exception_host:
             normal_host.append(host)
     print "normal_host",normal_host
+def version():
+    print __version__
 
 
 # 函数作为模块调用 不必理会
