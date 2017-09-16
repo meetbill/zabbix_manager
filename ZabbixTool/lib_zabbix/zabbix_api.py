@@ -2452,10 +2452,14 @@ class zabbix_api:
         output = []
         output[:] = []
         output.append(["hostname","key_","trigger","time","prevvalue"])
+
+        issues_info={}
         for trigger in result:
             output.append([trigger["hosts"][0]["name"],trigger["items"][0]["key_"],trigger["description"],time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(float(trigger["lastchange"]))),trigger["items"][0]["prevvalue"]+trigger["items"][0]["units"]])
+            issues_info[trigger["hosts"][0]["name"]]=[]
+            issues_info[trigger["hosts"][0]["name"]].append(trigger["items"][0]["key_"])
         self.__generate_output(output)
-        return output[1:]
+        return issues_info
          
     def __event_get(self, triggerid='',time_from='',time_till='',value=""): 
         '''
@@ -2827,4 +2831,6 @@ if __name__ == "__main__":
                 function_result = cmd(*func_args, **kwargs)
             except TypeError:
                 print(render_doc(cmd))
-                exit()
+            except Exception,e:
+                import traceback
+                traceback.print_exc()
