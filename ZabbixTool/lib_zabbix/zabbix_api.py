@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.3.01"
+__version__ = "1.3.02"
  
 import json 
 import urllib2 
@@ -2456,7 +2456,8 @@ class zabbix_api:
         issues_info={}
         for trigger in result:
             output.append([trigger["hosts"][0]["name"],trigger["items"][0]["key_"],trigger["description"],time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(float(trigger["lastchange"]))),trigger["items"][0]["prevvalue"]+trigger["items"][0]["units"]])
-            issues_info[trigger["hosts"][0]["name"]]=[]
+            if trigger["hosts"][0]["name"] not in issues_info.keys():
+                issues_info[trigger["hosts"][0]["name"]]=[]
             issues_info[trigger["hosts"][0]["name"]].append(trigger["items"][0]["key_"])
         self.__generate_output(output)
         return issues_info
