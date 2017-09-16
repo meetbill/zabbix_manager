@@ -107,7 +107,7 @@ def status():
 
     ## 异常主机
     for issues in issues_list:
-        exception_host.append(issues[0])
+        exception_host.append(issues)
     exception_host=list(set(exception_host))
     print "exception_host",exception_host
 
