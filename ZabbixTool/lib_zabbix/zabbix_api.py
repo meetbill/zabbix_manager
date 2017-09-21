@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.3.02"
+__version__ = "1.3.03"
  
 import json 
 import urllib2 
@@ -154,6 +154,11 @@ class zabbix_api:
         '''
         内部函数
         返回特定主机组下的主机列表和某个主机的列表
+        host['hostid']
+        host['host']
+        host['name']
+        host['interfaces'][0]["ip"]
+        host["available"]
         '''
         #  (1)Return all hosts.
         #  (2)Return only hosts that belong to the given groups.
@@ -176,7 +181,8 @@ class zabbix_api:
                     "method": "host.get",
                     "params": {
                           "groupids":group_list,
-                          "output": "extend",
+                          "output": ["hostid","host","name","status","available"],
+                          #"output": "extend",
                           "selectInterfaces":["ip"]
                               },
                     "auth":self.authID,
@@ -200,7 +206,8 @@ class zabbix_api:
                     "method": "host.get",
                     "params": {
                           "hostids":host_list,
-                          "output": "extend",
+                          "output": ["hostid","host","name","status","available"],
+                          #"output": "extend",
                           "selectInterfaces":["ip"]
                               },
                     "auth":self.authID,
@@ -211,7 +218,8 @@ class zabbix_api:
                     "jsonrpc": "2.0",
                     "method": "host.get",
                     "params": {
-                          "output": "extend",
+                          "output": ["hostid","host","name","status","available"],
+                          #"output": "extend",
                           "selectInterfaces":["ip"]
                               },
                     "auth":self.authID,
@@ -236,12 +244,11 @@ class zabbix_api:
             if len(response['result']) == 0:
                 return []
             for host in response['result']:      
-                all_host_list.append((host['hostid'],host['host'],host['name'],host['interfaces'][0]["ip"]))
+                all_host_list.append((host['hostid'],host['host'],host['name'],host['interfaces'][0]["ip"],host["available"]))
             return all_host_list
     def host_list(self):
         '''
         get host list
-        [eg1]#zabbix_api host_list
         '''
         host_list = self._hosts_get()
         hostlist_info = []
@@ -254,7 +261,6 @@ class zabbix_api:
         self.__generate_output(hostlist_info)
         # 只返回主机信息记录
         return hostlist_info[1:]
-
     def _hosts_get(self):
         '''
         获取特定条件下的主机列表
@@ -385,7 +391,7 @@ class zabbix_api:
         [eg1]#zabbix_api hostgroup_get "Templates"
         '''
         response=self.zapi.hostgroup.get({
-                                     "output": "extend", 
+                                     "output": ["groupid","name"], 
                                      "filter": { 
                                                 "name": hostgroupName 
                                                 } 
@@ -402,6 +408,57 @@ class zabbix_api:
                 self.hostgroupID = group['groupid'] 
                 return group['groupid'] 
         self.__generate_output(output)
+    def dev_hosts_info(self): 
+        '''
+        '''
+        host_list = self._hosts_get()
+        output = []
+        output.append(["hostname","ip","CPU","mem","available"])
+        available={"0":"Unknown","1":Color('{autobggreen}available{/autobggreen}'),"2":Color('{autobgred}Unavailable{/autobgred}')}
+        
+        # 返回信息使用
+        return_info = []
+        for host in host_list:
+            # host----- host['hostid'],host['host'],host['name'],host['interfaces'][0]["ip"],host["available"]
+            # print(host)
+            hostid = host[0]
+            hostname = host[2]
+            hostip = host[3]
+            host_available = host[4]
+
+            response=self.zapi.item.get({
+                                         "output":["name", "key_", "lastvalue"],
+                                         "hostids":hostid,
+                                         "monitored":True,
+                                         "filter":{
+                                             "key_":["system.cpu.util[,user]","vm.memory.size[available]","vm.memory.size[total]"]
+                                             }
+                                         }) 
+            # 返回信息使用
+            host_info = {}
+            if len(response) == 0:
+                output.append([hostname,hostip,"-1","-1",available[host_available]])
+                ###################################
+                host_info["hostname"] = hostname
+                host_info["hostip"] = hostip
+                host_info["cpu"] = "-1"
+                host_info["mem"] = "-1"
+                host_info["host_available"] = host_available
+            # {u'itemid': u'23889', u'lastvalue': u'16748281856', u'key_': u'vm.memory.size[total]', u'name': u'Total memory'}
+            else:
+                cpu_p = response[0]["lastvalue"]
+                mem_p = float('%0.4f'%((float(response[2]["lastvalue"]) - float(response[1]["lastvalue"]))/float(response[2]["lastvalue"]) * 100))
+                output.append([hostname,hostip,str(cpu_p),str(mem_p),available[host_available]])
+                ###################################
+                host_info["hostname"] = hostname
+                host_info["hostip"] = hostip
+                host_info["cpu"] = "-1"
+                host_info["mem"] = "-1"
+                host_info["host_available"] = host_available
+            ###################################
+            return_info.append(host_info)
+        self.__generate_output(output)
+        return return_info
     def __hostgroup_get_name(self, groupid=''): 
         '''
         内部函数
@@ -528,7 +585,8 @@ class zabbix_api:
         # [item['itemid'],item['name'],item['key_'],item['delay'],item['value_type']],item['units']
 
         response=self.zapi.item.get({
-                                     "output":"extend",
+                                     #"output":"extend",
+                                     "output":['itemid','name','key_','delay','value_type','history','units'],
                                      "hostids":host_ID,
                                      "monitored":True,
                                      }) 
@@ -565,7 +623,7 @@ class zabbix_api:
     def item_list(self, host_ID,application): 
         '''
         return a item list
-        [eg2]#zabbix_api item_get 10084 "CPU"
+        [eg]#zabbix_api item_list 10084 "CPU,Zabbix agent"
         '''
         # @return list
         # list_format
@@ -585,7 +643,8 @@ class zabbix_api:
             applicationids.append(applicationid)
 
         response=self.zapi.item.get({
-                                     "output":"extend",
+                                     # "output":"extend",
+                                     "output":['itemid','name','key_','delay','value_type','history','units'],
                                      "hostids":host_ID,
                                      "applicationids":applicationids,
                                      "monitored":True,
@@ -1673,12 +1732,12 @@ class zabbix_api:
         if identifier:
             try:                 
                 int(identifier)  
-                params = {"output":"extend","templateids":[int(identifier)]}
+                params = {"output":["templateid","name"],"templateids":[int(identifier)]}
             except:
-                params = {"output":"extend","filter":{"name":identifier}}
+                params = {"output":["templateid","name"],"filter":{"name":identifier}}
             return self.zapi.template.get(params)
         else:
-            params = {"output":"extend"}
+            params = {"output":["templateid","name"]}
             result = self.zapi.template.get(params)
             output = []
             output[:] = []
