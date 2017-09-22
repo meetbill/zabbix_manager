@@ -446,14 +446,17 @@ class zabbix_api:
                 host_info["host_available"] = host_available
             # {u'itemid': u'23889', u'lastvalue': u'16748281856', u'key_': u'vm.memory.size[total]', u'name': u'Total memory'}
             else:
-                cpu_p = response[0]["lastvalue"]
-                mem_p = float('%0.4f'%((float(response[2]["lastvalue"]) - float(response[1]["lastvalue"]))/float(response[2]["lastvalue"]) * 100))
+                cpu_p = float('%0.2f' % float(response[0]["lastvalue"]))
+                if float(response[2]["lastvalue"]) == 0.0 :
+                    mem_p = "-1"
+                else:
+                    mem_p = float('%0.2f'%((float(response[2]["lastvalue"]) - float(response[1]["lastvalue"]))/float(response[2]["lastvalue"]) * 100))
                 output.append([hostname,hostip,str(cpu_p),str(mem_p),available[host_available]])
                 ###################################
                 host_info["hostname"] = hostname
                 host_info["hostip"] = hostip
-                host_info["cpu"] = "-1"
-                host_info["mem"] = "-1"
+                host_info["cpu"] = str(cpu_p)
+                host_info["mem"] = str(mem_p)
                 host_info["host_available"] = host_available
             ###################################
             return_info.append(host_info)
@@ -2954,8 +2957,7 @@ if __name__ == "__main__":
                         func_args.append(arg)
                 func_args = tuple(func_args)
                 function_result = cmd(*func_args, **kwargs)
-            #except TypeError:
-            #    print(render_doc(cmd))
             except Exception,e:
+                print(render_doc(cmd))
                 import traceback
                 traceback.print_exc()
