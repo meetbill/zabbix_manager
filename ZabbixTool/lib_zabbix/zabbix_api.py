@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.3.03"
+__version__ = "1.3.04"
  
 import json 
 import urllib2 
@@ -459,6 +459,70 @@ class zabbix_api:
             return_info.append(host_info)
         self.__generate_output(output)
         return return_info
+    def dev_hosts_device(self,mountdir = "/"): 
+        '''
+        [eg1]#zabbix_api dev_hosts_device "/home"
+        [eg2]#zabbix_api dev_hosts_device
+        '''
+        host_list = self._hosts_get()
+        output = []
+        output.append(["hostname","ip","use_p","total","use","available"])
+        available={"0":"Unknown","1":Color('{autobggreen}available{/autobggreen}'),"2":Color('{autobgred}Unavailable{/autobgred}')}
+        
+        # 返回信息使用
+        return_info = []
+        for host in host_list:
+            # host----- host['hostid'],host['host'],host['name'],host['interfaces'][0]["ip"],host["available"]
+            # print(host)
+            hostid = host[0]
+            hostname = host[2]
+            hostip = host[3]
+            host_available = host[4]
+
+            response=self.zapi.item.get({
+                                         "output":["name", "key_", "lastvalue","value_type",'units'],
+                                         "hostids":hostid,
+                                         "monitored":True,
+                                         "filter":{
+                                             "key_":["vfs.fs.size[%s,total]" % mountdir,"vfs.fs.size[%s,used]" % mountdir,"vfs.fs.size[%s,pfree]" % mountdir]
+                                             }
+                                         }) 
+            # 返回信息使用
+            host_dev = {}
+            if len(response) == 0:
+                output.append([hostname,hostip,"-1","-1","-1",available[host_available]])
+                ###################################
+                host_dev["hostname"] = hostname
+                host_dev["hostip"] = hostip
+                host_dev["use_p"] = "-1"
+                host_dev["total"] = "-1"
+                host_dev["use"] = "-1"
+                host_dev["host_available"] = host_available
+            # {u'itemid': u'23889', u'lastvalue': u'16748281856', u'key_': u'vm.memory.size[total]', u'name': u'Total memory'}
+            else:
+                mountdir_free_p = response[0]["lastvalue"]
+                mountdir_total = int(response[1]["lastvalue"])
+                mountdir_use = int(response[2]["lastvalue"])
+                # 检测是 item 类型是否是整数或者浮点数，不是则直接返回-1 
+                mountdir_total=self.__ByteFormat(mountdir_total)
+                mountdir_use=self.__ByteFormat(mountdir_use)
+                mountdir_use_p =float('%0.2f'%( 100.0 - float(mountdir_free_p)))
+                mountdir_use_p = str(mountdir_use_p) + " %"
+                mountdir_total=str(mountdir_total) + response[1]["units"]
+                mountdir_use=str(mountdir_use) + response[2]["units"]
+                output.append([hostname,hostip,str(mountdir_use_p),str(mountdir_total),str(mountdir_use),available[host_available]])
+                ###################################
+                host_dev["hostname"] = hostname
+                host_dev["hostip"] = hostip
+                host_dev["use_p"] = str(mountdir_use_p)
+                host_dev["total"] = str(mountdir_total)
+                host_dev["use"] = str(mountdir_use)
+                host_dev["host_available"] = host_available
+            ###################################
+            return_info.append(host_dev)
+        self.__generate_output(output)
+        # print(return_info)
+        return return_info
     def __hostgroup_get_name(self, groupid=''): 
         '''
         内部函数
@@ -850,6 +914,7 @@ class zabbix_api:
         if size > 1024:
             return '%.2f K' % (size/math.pow(1024,1))
         return size
+
     def _report(self,itemName,date_from,date_till,export_xls,select_condition): 
 
         units_list = ["B","vps","bps","sps"]
@@ -2889,8 +2954,8 @@ if __name__ == "__main__":
                         func_args.append(arg)
                 func_args = tuple(func_args)
                 function_result = cmd(*func_args, **kwargs)
-            except TypeError:
-                print(render_doc(cmd))
+            #except TypeError:
+            #    print(render_doc(cmd))
             except Exception,e:
                 import traceback
                 traceback.print_exc()
