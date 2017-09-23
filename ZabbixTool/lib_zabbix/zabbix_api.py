@@ -3,11 +3,9 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.3.04"
+__version__ = "1.4.01"
  
 import json 
-import urllib2 
-from urllib2 import URLError 
 import ConfigParser
 import sys
 import os
@@ -47,8 +45,6 @@ class zabbix_api:
         web_access = False
         logpath = "/tmp/zabbix_tool.log"
         self.logger = Log(logpath,level="debug",is_console=debug, mbs=5, count=5)
-        self.logger.debug("[zabbix_config ]:%s"%zabbix_config)
-        self.logger.debug("[zabbix_setting]:%s"%zabbix_setting)
         if os.path.exists(zabbix_setting):
             config = ConfigParser.ConfigParser()
             config.read(zabbix_setting)
@@ -83,43 +79,15 @@ class zabbix_api:
             else:
                 self.zapi=ZabbixAPI(server=zabbix_server)
             self.zapi.login(self.user,self.password)
-            print("zabbix version:[%s]"%self.zapi.api_version()) 
             self.__host_id__ = ''
             self.__hostgroup_id__ = ''
         else:
             print("the config file [%s] is not exist"%zabbix_config)
             exit(1)
-
-        self.url = zabbix_server + '/api_jsonrpc.php'
-        self.header = {"Content-Type":"application/json"}
         self.terminal_table=terminal_table
-        self.authID = self.__user_login() 
         self.sepsign=None
-    def __user_login(self): 
-        data = json.dumps({
-                           "jsonrpc": "2.0",
-                           "method": "user.login",
-                           "params": { 
-                                      "user": self.user, #修改用户名
-                                      "password": self.password #修改密码
-                                      },
-                           "id": 0 
-                           })
-         
-        request = urllib2.Request(self.url, data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-     
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("\033[041m 用户认证失败，请检查 !\033[0m", e)
-            exit(1)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            self.authID = response['result'] 
-            return self.authID 
+    def version(self):
+        print("zabbix version:[%s]"%self.zapi.api_version()) 
     def host_get(self,hostName=''): 
         '''
         get host
@@ -145,8 +113,6 @@ class zabbix_api:
                         template =  template_item["name"] + '\n'+ template
                 output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']],template])
             else:
-                #output.append([host['hostid'],host['name'],host['interfaces'][0]["ip"],status[host['status']],available[host['available']]])
-                #self.__generate_output(output)
                 return host['hostid']
         self.__generate_output(output)
         return 0
@@ -154,6 +120,8 @@ class zabbix_api:
         '''
         内部函数
         返回特定主机组下的主机列表和某个主机的列表
+
+        返回值为列表
         host['hostid']
         host['host']
         host['name']
@@ -176,18 +144,11 @@ class zabbix_api:
                     if not hostgroup_id:
                         continue
                 group_list.append(hostgroup_id)
-            data=json.dumps({
-                    "jsonrpc": "2.0",
-                    "method": "host.get",
-                    "params": {
-                          "groupids":group_list,
-                          "output": ["hostid","host","name","status","available"],
-                          #"output": "extend",
-                          "selectInterfaces":["ip"]
-                              },
-                    "auth":self.authID,
-                    "id": 1
-                    })
+            data_params = {
+                    "groupids":group_list,
+                    "output": ["hostid","host","name","status","available"],
+                    "selectInterfaces":["ip"]
+                    }
         elif hostID:
             host_list=[]
             host_list[:]=[]
@@ -201,51 +162,22 @@ class zabbix_api:
                     if not host_id:
                         continue
                 host_list.append(host_id)
-            data=json.dumps({
-                    "jsonrpc": "2.0",
-                    "method": "host.get",
-                    "params": {
-                          "hostids":host_list,
-                          "output": ["hostid","host","name","status","available"],
-                          #"output": "extend",
-                          "selectInterfaces":["ip"]
-                              },
-                    "auth":self.authID,
-                    "id": 1
-                    })
+            data_params = {
+                    "hostids":host_list,
+                    "output": ["hostid","host","name","status","available"],
+                    "selectInterfaces":["ip"]
+                    }
         else:
-            data=json.dumps({
-                    "jsonrpc": "2.0",
-                    "method": "host.get",
-                    "params": {
-                          "output": ["hostid","host","name","status","available"],
-                          #"output": "extend",
-                          "selectInterfaces":["ip"]
-                              },
-                    "auth":self.authID,
-                    "id": 1
-                    })
-
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            if hasattr(e, 'reason'): 
-                print('We failed to reach a server.') 
-                print('Reason: ', e.reason)
-            elif hasattr(e, 'code'): 
-                print('The server could not fulfill the request.')
-                print('Error code: ', e.code)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                return []
-            for host in response['result']:      
-                all_host_list.append((host['hostid'],host['host'],host['name'],host['interfaces'][0]["ip"],host["available"]))
-            return all_host_list
+            data_params = {
+                    "output": ["hostid","host","name","status","available"],
+                    "selectInterfaces":["ip"]
+                    }
+        response=self.zapi.host.get(data_params)
+        if len(response) == 0:
+            return []
+        for host in response:      
+            all_host_list.append((host['hostid'],host['host'],host['name'],host['interfaces'][0]["ip"],host["available"]))
+        return all_host_list
     def host_list(self):
         '''
         get host list
@@ -299,8 +231,12 @@ class zabbix_api:
         template_list=[]
         for i in hostgroupName.split(','):
             var = {}
-            var['groupid'] = self.hostgroup_get(i)
-            group_list.append(var)
+            hostgroup_id = self.hostgroup_get(i)
+            if hostgroup_id:
+                var['groupid'] = hostgroup_id
+                group_list.append(var)
+        if not len(group_list):
+            return self.__generate_return("ERR","not found hostgroup %s " % hostgroupName)
         for i in templateName.split(','):
             var={}
             templates_info=self.template_get(i)
@@ -309,68 +245,40 @@ class zabbix_api:
             var['templateid']=templates_info[0]['templateid']
             template_list.append(var)   
 
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"host.create", 
-                           "params":{ 
-                                     "host": hostname, 
-                                     "interfaces": [ 
-                                     { 
-                                     "type": 1, 
-                                     "main": 1, 
-                                     "useip": 1, 
-                                     "ip": hostip, 
-                                     "dns": "", 
-                                     "port": "10050" 
-                                      } 
-                                     ], 
-                                   "groups": group_list,
-                                   "templates": template_list,
-                                     }, 
-                           "auth":self.authID, 
-                           "id":1                   
-        }) 
-        request = urllib2.Request(self.url, data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            return self.__generate_return("OK","create host:[%s] hostid:[%s] OK"%(hostname,response['result']['hostids'][0]))
+        data_params = {
+                "host": hostname, 
+                "interfaces": [ 
+                        { 
+                            "type": 1, 
+                            "main": 1, 
+                            "useip": 1, 
+                            "ip": hostip, 
+                            "dns": "", 
+                            "port": "10050" 
+                        } 
+                    ], 
+                "groups": group_list,
+                "templates": template_list,
+                }
+        response=self.zapi.host.create(data_params)
+        # print(response)
+        return self.__generate_return("OK","create host:[%s] hostid:[%s] OK"%(hostname,response['hostids'][0]))
     def host_status(self,hostname,status="Disabled"):
         '''
         Turns a host Enabled or Disabled[default]
         [eg1]#zabbix_api host_status "ceshi_host" "Disabled"
         [eg2]#zabbix_api host_status "ceshi_host" "Enabled"
         '''
+        hostid = self.host_get(hostname)
+        if not hostid:
+            return self.__generate_return("ERR","host [%s] is not exist"%hostname)
         status_flag={"Enabled":0,"Disabled":1}
-        data=json.dumps({
-            "jsonrpc": "2.0",
-            "method": "host.update",
-            "params": {
-            "hostid": self.host_get(hostname),
-            "status": status_flag[status]
-            },
-            "auth":self.authID,
-            "id": 1
-        })
-        request = urllib2.Request(self.url,data)
-        for key in self.header:
-            request.add_header(key, self.header[key])       
-        try: 
-            result = urllib2.urlopen(request)
-        except URLError as e: 
-            print("Error as ", e)
-        else: 
-            response = json.loads(result.read()) 
-            result.close()
-            print('----主机现在状态------------')
-            self.host_get(hostname)
+        data_params = {
+                "hostid": hostid,
+                "status": status_flag[status]
+                }
+        self.zapi.host.update(data_params)
+        return self.__generate_return("OK","host [%s] set status [%s]"%(hostname,status))
     def host_delete(self,hostname):
         '''
         Remove the host
@@ -526,42 +434,18 @@ class zabbix_api:
         self.__generate_output(output)
         # print(return_info)
         return return_info
-    def __hostgroup_get_name(self, groupid=''): 
+    def __hostgroup_get_name(self,groupid): 
         '''
         内部函数
         根据hostgroup id 获得主机群组的 name
         '''
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"hostgroup.get", 
-                           "params":{ 
-                                     "output": "extend", 
-                                     "filter": { 
-                                                "groupid": groupid
-                                                } 
-                                     }, 
-                           "auth":self.authID, 
-                           "id":1, 
-                           }) 
-         
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e )
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                return 0
-            for group in response['result']:
-                if  len(groupid)==0:
-                    print("hostgroup:  \033[31m%s\033[0m \tgroupid : %s" %(group['name'],group['groupid']))
-            else:
-                return group['name'] 
+        response=self.zapi.hostgroup.get({
+                                    "output": "extend", 
+                                    "groupids":groupid
+                                    })
+        if len(response) == 0:
+            return 0
+        return response[0]['name'] 
     def hostgroup_create(self,hostgroupName):
         '''
         create a hostgroup
@@ -709,12 +593,12 @@ class zabbix_api:
                     continue
             applicationids.append(applicationid)
 
+        self.logger.info("function[%s],hostid[%s],applicationids[%s]"%("item_list",str(host_ID),str(applicationids)))
         response=self.zapi.item.get({
-                                     # "output":"extend",
                                      "output":['itemid','name','key_','delay','value_type','history','units'],
                                      "hostids":host_ID,
                                      "applicationids":applicationids,
-                                     "monitored":True,
+                                     "monitored":True
                                      }) 
         if len(response) == 0:
             return 0
@@ -785,29 +669,14 @@ class zabbix_api:
         内部函数
         根据 某个item_ID 确定 item 的value_type 
         '''
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"item.get", 
-                           "params":{ 
+        response=self.zapi.item.get({
                                      "output":"extend",
                                      "itemids":item_ID,
-                                     }, 
-                           "auth":self.authID, 
-                           "id":1, 
-                           }) 
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                return 0
-            return response['result'][0]['value_type']
+                                     }) 
+         
+        if len(response) == 0:
+            return 0
+        return response[0]['value_type']
     # history
     def history_get(self,item_ID,date_from,date_till): 
         '''
@@ -833,40 +702,24 @@ class zabbix_api:
         '''
         history_data=[]
         history_data[:]=[]
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"history.get", 
-                           "params":{ 
-                                     "time_from":time_from,
-                                     "time_till":time_till,
-                                     "output": "extend",
-                                     "history": history,
-                                     "itemids": item_ID,
-                                     "sortfield":"clock",
-                                     "limit": 10080
-                                     }, 
-                           "auth":self.authID, 
-                           "id":1, 
-                           }) 
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                warn_msg("not have history_data")
-                debug_info=str([history,item_ID,time_from,time_till,"####not have history_data"])
-                self.logger.debug(debug_info)
-                return 0.0
-            for history_info in response['result']:
-                timeArray = time.localtime(int(history_info['clock']))
-                otherStyleTime = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
-                print(item_ID,history_info['value'],otherStyleTime)
+        response=self.zapi.history.get({
+                 "time_from":time_from,
+                 "time_till":time_till,
+                 "output": "extend",
+                 "history": history,
+                 "itemids": item_ID,
+                 "sortfield":"clock",
+                 "limit": 10080
+            })
+        if len(response) == 0:
+            warn_msg("not have history_data")
+            debug_info=str([history,item_ID,time_from,time_till,"####not have history_data"])
+            self.logger.debug(debug_info)
+            return 0.0
+        for history_info in response:
+            timeArray = time.localtime(int(history_info['clock']))
+            otherStyleTime = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
+            print(item_ID,history_info['value'],otherStyleTime)
     def __get_select_condition_info(self): 
         '''
         内部函数
@@ -877,7 +730,12 @@ class zabbix_api:
             if self.__hostgroup_id__:
                 flag = 1
                 for i in self.__hostgroup_id__.split(','):
-                    hostgroup_name = self.__hostgroup_get_name(i)
+                    try:
+                        int(i)
+                        hostgroup_name = self.__hostgroup_get_name(i)
+                    except:
+                        hostgroup_name = i
+
                     if flag:
                         flag = 0
                         output = hostgroup_name + output
@@ -1253,53 +1111,36 @@ class zabbix_api:
         '''
         此函数为 report_available 引用函数
         '''
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"trend.get", 
-                           "params":{ 
-                               "time_from":time_from,
-                               "time_till":time_till,
-                               "output":[
-                                   "itemid",
-                                   "clock",
-                                   "num",
-                                   "value_min",
-                                   "value_avg",
-                                   "value_max"
-                                        ],
-                               "itemids":item_ID,
-                               "limit":"8760"
-                                     }, 
-                           "auth":self.authID, 
-                           "id":1, 
-                           }) 
-
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e )
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                debug_info=str([item_ID,time_from,time_till,"####not have trend_data"])
-                self.logger.debug(debug_info)
-                return 0,0,0
-            sum_num_value = 0
-            sum_avg_value = 0
-            for result_info in response['result']:
-                hour_num_string = unicodedata.normalize('NFKD',result_info['num']).encode('ascii','ignore')
-                hour_num=eval(hour_num_string)
-                sum_num_value = sum_num_value + hour_num
-                
-                hour_avg_string = unicodedata.normalize('NFKD',result_info['value_avg']).encode('ascii','ignore')
-                hour_avg=eval(hour_avg_string)
-                sum_avg_value = sum_avg_value + hour_avg
-            trend_sum = len(response['result'])
-            return trend_sum,sum_num_value,sum_avg_value
+        response=self.zapi.trend.get({
+               "time_from":time_from,
+               "time_till":time_till,
+               "output":[
+                   "itemid",
+                   "clock",
+                   "num",
+                   "value_min",
+                   "value_avg",
+                   "value_max"
+                        ],
+               "itemids":item_ID,
+               "limit":"8760"
+            })
+        if len(response) == 0:
+            debug_info=str([item_ID,time_from,time_till,"####not have trend_data"])
+            self.logger.debug(debug_info)
+            return 0,0,0
+        sum_num_value = 0
+        sum_avg_value = 0
+        for result_info in response:
+            hour_num_string = unicodedata.normalize('NFKD',result_info['num']).encode('ascii','ignore')
+            hour_num=eval(hour_num_string)
+            sum_num_value = sum_num_value + hour_num
+            
+            hour_avg_string = unicodedata.normalize('NFKD',result_info['value_avg']).encode('ascii','ignore')
+            hour_avg=eval(hour_avg_string)
+            sum_avg_value = sum_avg_value + hour_avg
+        trend_sum = len(response)
+        return trend_sum,sum_num_value,sum_avg_value
     def __diff_hour(self,date1,date2):
         '''
         内部函数
@@ -1718,35 +1559,19 @@ class zabbix_api:
             err_msg("时间格式 ['2016-05-01 00:00:00'] ['2016-06-01 00:00:00']")
         time_from = int(time.mktime(startTime))
         time_till = int(time.mktime(endTime))
-        data=json.dumps({
-                "jsonrpc": "2.0",
-                "method": "alert.get",
-                "params": {
-                    "output":"extend",
-                    "time_from":time_from,
-                    "time_till":time_till
-                },
-                "auth":self.authID,
-                "id": 1
-                })
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-             
-        try: 
-            result = urllib2.urlopen(request) 
-        except Exception,e: 
-            print(e)
-        else: 
-            response = json.loads(result.read()) 
-            if len(response['result']) == 0:
-                print("no alert")
-                return 0
-            for alert in response['result']:      
-                timeArray = time.localtime(int(alert['clock']))
-                otherStyleTime = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
-                print(alert['alertid'],otherStyleTime,alert['sendto'],alert['subject'],alert['status'])
-            result.close() 
+        response=self.zapi.alert.get({
+                                "output":"extend",
+                                "time_from":time_from,
+                                "time_till":time_till
+                                }) 
+         
+        if len(response) == 0:
+            print("no alert")
+            return 0
+        for alert in response:      
+            timeArray = time.localtime(int(alert['clock']))
+            otherStyleTime = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
+            print(alert['alertid'],otherStyleTime,alert['sendto'],alert['subject'],alert['status'])
     def __trend_get(self,itemID='',time_from='',time_till=''): 
         '''
         内部函数
@@ -1806,11 +1631,11 @@ class zabbix_api:
             return self.zapi.template.get(params)
         else:
             params = {"output":["templateid","name"]}
-            result = self.zapi.template.get(params)
+            response = self.zapi.template.get(params)
             output = []
             output[:] = []
             output.append(["id","template"])
-            for template in result: 
+            for template in response: 
                 output.append([template['templateid'],template['name']])
             self.__generate_output(output)
             return 0
@@ -1877,30 +1702,15 @@ class zabbix_api:
                 'updateExisting': 'true'
             },
         }
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method": "configuration.import", 
-                           "params": { 
-                                      "format": "xml", 
-                                      "rules": rules,
-                                      "source":template
-                                      }, 
-                           "auth":self.authID, 
-                           "id":1, 
-                           })
-         
-        request = urllib2.Request(self.url, data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e )
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
+        response = self.zapi.configuration.import_({
+                "format": "xml", 
+                "rules": rules,
+                "source":template
+            })
+        if response:
             return self.__generate_return("OK","import template [%s] OK"%template_path)
+        else:
+            return self.__generate_return("ERR","import template [%s] ERR"%template_path)
     def user_get(self,userName=''): 
         '''
         get user list
@@ -2089,81 +1899,47 @@ class zabbix_api:
             ]
         )
         return self.__generate_return("OK","delete mediatype:[%s] OK"%mediatypeName)
-    # drule(discoveryRules)
     def drule_get(self,druleName=''): 
-        data=json.dumps({
-                "jsonrpc": "2.0",
-                "method": "drule.get",
-                "params": {
-                          "output": "extend",
-                          "filter":{"name":druleName} 
-                          },
-                "auth":self.authID,
-                "id": 1
-                })
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            if hasattr(e, 'reason'): 
-                print('We failed to reach a server.')
-                print('Reason: ', e.reason)
-            elif hasattr(e, 'code'): 
-                print('The server could not fulfill the request.' )
-                print('Error code: ', e.code )
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                return 0
-            output = []
-            output[:] = []
-            output.append(["druleid","name","iprange","status"])
-            status={"0":Color('{autobggreen}Enabled{/autobggreen}'),"1":Color('{autobgred}Disabled{/autobgred}')}
-            for drule in response['result']:      
-                if len(druleName)==0:
-                    output.append([drule['druleid'],drule['name'],drule['iprange'],status[drule['status']]])
-                else:
-                    return drule['druleid']
-            self.__generate_output(output)
+        """
+        get drule(discoveryRules)
+        """
+        response=self.zapi.drule.get({
+                      "output":["druleid","name","iprange","status"],
+                      "filter":{"name":druleName}
+                      })
+        if len(response) == 0:
             return 0
+        output = []
+        output[:] = []
+        output.append(["druleid","name","iprange","status"])
+        status={"0":Color('{autobggreen}Enabled{/autobggreen}'),"1":Color('{autobgred}Disabled{/autobgred}')}
+        for drule in response:      
+            if len(druleName)==0:
+                output.append([drule['druleid'],drule['name'],drule['iprange'],status[drule['status']]])
+            else:
+                return drule['druleid']
+        self.__generate_output(output)
+        return 0
     def drule_create(self, druleName,iprange): 
         if self.drule_get(druleName):
-            print("\033[041mthis druleName is exists\033[0m" )
-            sys.exit(1)
+            return self.__generate_return("ERR","druleName [%s] is exist"%druleName)
 
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"drule.create", 
-                           "params": {
-                               "name": druleName,
-                               "iprange": iprange,
-                               "dchecks": [
-                                           {
-                                               "type": "9",
-                                               "key_": "system.uname",
-                                               "ports": "10050",
-                                               "uniq": "0"
-                                            }
-                                          ]
-                                      },
-                           "auth":self.authID, 
-                           "id":1                   
-        }) 
-        request = urllib2.Request(self.url, data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e )
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            print("add drule : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" % (druleName, response['result']['druleids'][0]))
+        response=self.zapi.drule.create({
+                     "name": druleName,
+                     "iprange": iprange,
+                     "dchecks": [
+                               {
+                                   "type": "9",
+                                   "key_": "system.uname",
+                                   "ports": "10050",
+                                   "uniq": "0"
+                                }
+                              ]
+                      })
+        if len(response) == 0:
+            return 0
+        else:
+            return self.__generate_return("OK","druleName [%s] is create OK"%druleName)
     def action_get(self,actionName=''): 
         '''
         rerun action list
@@ -2174,49 +1950,28 @@ class zabbix_api:
         # eventsource 1 discovery
         # eventsource 2 auto registration
         # eventsource 3 internal
-        data=json.dumps({
-                "jsonrpc": "2.0",
-                "method": "action.get",
-                "params": {
-                          "output": "extend",
-                          "filter":{
-                              "name":actionName,
-                          } 
-                          },
-                "auth":self.authID,
-                "id": 1
-                })
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            if hasattr(e, 'reason'): 
-                print('We failed to reach a server.')
-                print('Reason: ', e.reason)
-            elif hasattr(e, 'code'): 
-                print('The server could not fulfill the request.')
-                print('Error code: ', e.code )
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                return 0
-            output = []
-            output[:] = []
-            output.append(["actionid","name","eventsource","status"])
-            status={"0":Color('{autobggreen}Enabled{/autobggreen}'),"1":Color('{autobgred}Disabled{/autobgred}')}
-            eventsource={"0":"triggers","1":"discovery","2":"registration","3":"internal"}
-            for action in response['result']:      
-                if len(actionName)==0:
-                    self.logger.info(str(action))
-                    output.append([action['actionid'],action['name'],eventsource[action['eventsource']],status[action['status']]])
-                else:
-                    self.logger.info(str(action))
-                    return action['actionid']
-            self.__generate_output(output)
+        response=self.zapi.action.get({
+                "output": "extend",
+                "filter":{
+                    "name":actionName,
+                } 
+            })
+        if len(response) == 0:
             return 0
+        output = []
+        output[:] = []
+        output.append(["actionid","name","eventsource","status"])
+        status={"0":Color('{autobggreen}Enabled{/autobggreen}'),"1":Color('{autobgred}Disabled{/autobgred}')}
+        eventsource={"0":"triggers","1":"discovery","2":"registration","3":"internal"}
+        for action in response:      
+            if len(actionName)==0:
+                self.logger.info(str(action))
+                output.append([action['actionid'],action['name'],eventsource[action['eventsource']],status[action['status']]])
+            else:
+                self.logger.info(str(action))
+                return action['actionid']
+        self.__generate_output(output)
+        return 0
     def action_autoreg_create(self, actionName,metaname,hostgroupName): 
         '''
         create autoreg action
@@ -2240,76 +1995,54 @@ class zabbix_api:
             return json.dumps(output_print)
         templateName = "Template OS Linux"
         templateID=self.template_get(templateName)[0]['templateid']
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"action.create", 
-                           "params": {
-                               "name": actionName,
-                               "eventsource": 2,
-                               "status": 0,
-                               "esc_period": 0,
-                               "filter": {
-                                   "evaltype": 0,
-                                   "conditions": [
-                                        {
-                                            "conditiontype": 24,
-                                            "operator": 2,
-                                            "value": metaname
-                                        }
-                                   ]
-                               },
-                               "operations": [
-                                    {
-                                        "operationtype": 2,# add host
-                                        "esc_step_from": 1,
-                                        "esc_period": 0,
-                                        "esc_step_to": 1
-                                    },
-                                    {
-                                        "operationtype": 4,# add to host group
-                                        "esc_step_from": 2,
-                                        "esc_period": 0,
-                                        "opgroup": [
-                                            {
-                                                "groupid":hostgroupID
-                                            }
-                                        ],
-                                        "esc_step_to": 2
-                                    },
-                                    {
-                                        "operationtype": 6, # link to template
-                                        "esc_step_from": 3,
-                                        "esc_period": 0,
-                                        "optemplate": [
-                                            {
-                                                "templateid":templateID
-                                            }
-                                        ],
-                                        "esc_step_to": 3
-                                    }
-                                ]
-                           },
-                           "auth":self.authID, 
-                           "id":1                   
-        }) 
-        request = urllib2.Request(self.url, data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-
-            output_print={}
-            output_print["status"]="OK"
-            output_print["output"]="add action:%s id:%s" %(actionName, response['result']['actionids'][0]) 
-            if self.output:
-                print(json.dumps(output_print))
-            return json.dumps(output_print)
+        data_params = {
+               "name": actionName,
+               "eventsource": 2,
+               "status": 0,
+               "esc_period": 0,
+               "filter": {
+                   "evaltype": 0,
+                   "conditions": [
+                        {
+                            "conditiontype": 24,
+                            "operator": 2,
+                            "value": metaname
+                        }
+                   ]
+               },
+               "operations": [
+                    {
+                        "operationtype": 2,# add host
+                        "esc_step_from": 1,
+                        "esc_period": 0,
+                        "esc_step_to": 1
+                    },
+                    {
+                        "operationtype": 4,# add to host group
+                        "esc_step_from": 2,
+                        "esc_period": 0,
+                        "opgroup": [
+                            {
+                                "groupid":hostgroupID
+                            }
+                        ],
+                        "esc_step_to": 2
+                    },
+                    {
+                        "operationtype": 6, # link to template
+                        "esc_step_from": 3,
+                        "esc_period": 0,
+                        "optemplate": [
+                            {
+                                "templateid":templateID
+                            }
+                        ],
+                        "esc_step_to": 3
+                    }
+                ]
+            }
+        self.zapi.action.create(data_params)
+        return self.__generate_return("OK","action [%s] is create OK"%actionName)
     def action_trigger_create(self, actionName,usergroupName,mediatypeName): 
         '''
         create trigger action
@@ -2323,10 +2056,7 @@ class zabbix_api:
         usergroupid = self.usergroup_get(usergroupName)
         if not usergroupid:
             return self.__generate_return("ERR","this usergroup is not exists")
-        data = json.dumps({ 
-            "jsonrpc": "2.0",
-            "method": "action.create",
-            "params": {
+        data_params = {
                 "name": actionName,
                 "eventsource": 0,
                 "status": 0,
@@ -2369,28 +2099,9 @@ class zabbix_api:
                         }
                     }
                 ]
-            },
-            "auth":self.authID, 
-            "id": 1
-        })
-        request = urllib2.Request(self.url, data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e )
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-
-            output_print={}
-            output_print["status"]="OK"
-            output_print["output"]="add action:%s id:%s" %(actionName, response['result']['actionids'][0]) 
-            if self.output:
-                print(json.dumps(output_print))
-            return json.dumps(output_print)
+            }
+        self.zapi.action.create(data_params)
+        return self.__generate_return("OK","action [%s] is create OK"%actionName)
     def action_discovery_create(self, actionName,hostgroupName): 
         '''
         create autoreg action
@@ -2404,83 +2115,67 @@ class zabbix_api:
         hostgroupID = self.hostgroup_get(hostgroupName)
         if not hostgroupID:
             print("this hostgroup is not exists")
-            exit(1)
+            sys.exit(1)
         templateName = "Template OS Linux"
         templateID=self.template_get(templateName)
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"action.create", 
-                           "params": {
-                               "name": actionName,
-                               "eventsource": 1,
-                               "status": 0,
-                               "esc_period": 0,
-                               "filter": {
-                                   "evaltype": 0,
-                                   "conditions": [
-                                        {
-                                            "conditiontype": 12,
-                                            "operator": 2,
-                                            "value": "Linux"
-                                        },
-                                        {
-                                            "conditiontype":10,
-                                            "operator": 0,
-                                            "value":"0"
-                                        },
-                                        {
-                                            "conditiontype":8,
-                                            "operator": 0,
-                                            "value":"9"
-                                        }
-                                   ]
-                               },
-                               "operations": [
-                                    {
-                                        "operationtype": 2,
-                                        "esc_step_from": 1,
-                                        "esc_period": 0,
-                                        "esc_step_to": 1
-                                    },
-                                    {
-                                        "operationtype": 4,
-                                        "esc_step_from": 2,
-                                        "esc_period": 0,
-                                        "opgroup": [
-                                            {
-                                                "groupid":hostgroupID
-                                            }
-                                        ],
-                                        "esc_step_to": 2
-                                    },
-                                    {
-                                        "operationtype": 6,
-                                        "esc_step_from": 3,
-                                        "esc_period": 0,
-                                        "optemplate": [
-                                            {
-                                                "templateid":templateID
-                                            }
-                                        ],
-                                        "esc_step_to": 3
-                                    }
-                                ]
-                           },
-                           "auth":self.authID, 
-                           "id":1                   
-        }) 
-        request = urllib2.Request(self.url, data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e)
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            print("add action : \033[42m%s\033[0m \tid :\033[31m%s\033[0m" %(actionName, response['result']['actionids'][0]))
+        data_params = {
+            "name": actionName,
+            "eventsource": 1,
+            "status": 0,
+            "esc_period": 0,
+            "filter": {
+                "evaltype": 0,
+                "conditions": [
+                     {
+                        "conditiontype": 12,
+                        "operator": 2,
+                        "value": "Linux"
+                     },
+                     {
+                        "conditiontype":10,
+                        "operator": 0,
+                        "value":"0"
+                     },
+                     {
+                        "conditiontype":8,
+                        "operator": 0,
+                        "value":"9"
+                     }
+                ]
+            },
+            "operations": [
+                {
+                    "operationtype": 2,
+                    "esc_step_from": 1,
+                    "esc_period": 0,
+                    "esc_step_to": 1
+                },
+                {
+                    "operationtype": 4,
+                    "esc_step_from": 2,
+                    "esc_period": 0,
+                    "opgroup": [
+                        {
+                            "groupid":hostgroupID
+                        }
+                    ],
+                    "esc_step_to": 2
+                },
+                {
+                    "operationtype": 6,
+                    "esc_step_from": 3,
+                    "esc_period": 0,
+                    "optemplate": [
+                        {
+                            "templateid":templateID
+                        }
+                    ],
+                    "esc_step_to": 3
+                }
+            ]
+        }
+        self.zapi.action.create(data_params)
+        return self.__generate_return("OK","action [%s] is create OK"%actionName)
     def mysql_quota(self): 
         # 设置为调用的函数不输出
         self.output = False
@@ -2521,38 +2216,21 @@ class zabbix_api:
             return 0
 
         all_trigger_list=[]
-        data = json.dumps({ 
-                           "jsonrpc":"2.0", 
-                           "method":"trigger.get", 
-                           "params":{ 
-                               "output":"extend",
-                               "hostids":host_ID,
-                               "expandData":"1",
-                               "monitored":1,
-                               #"selectItems":"extend",
-                               "selectItems":["key_","prevvalue","units","value_type"],
-                               "expandDescription":"1"
-                           }, 
-                           "auth":self.authID, 
-                           "id":1, 
-        }) 
-         
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e )
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            if len(response['result']) == 0:
-                return 0
-            for trigger in response['result']:
-                all_trigger_list.append((trigger["triggerid"],trigger["description"],trigger["items"][0]["key_"],trigger["items"][0]["prevvalue"],trigger["items"][0]["units"]))
-            return all_trigger_list
+        data_params = {
+            "output":"extend",
+            "hostids":host_ID,
+            "expandData":"1",
+            "monitored":1,
+            #"selectItems":"extend",
+            "selectItems":["key_","prevvalue","units","value_type"],
+            "expandDescription":"1"
+            } 
+        response=self.zapi.trigger.get(data_params)
+        if len(response) == 0:
+            return 0
+        for trigger in response:
+            all_trigger_list.append((trigger["triggerid"],trigger["description"],trigger["items"][0]["key_"],trigger["items"][0]["prevvalue"],trigger["items"][0]["units"]))
+        return all_trigger_list
     def issues(self): 
         '''
         output issues list
@@ -2572,8 +2250,8 @@ class zabbix_api:
                   "value": 1
                }
         }
-        result = self.zapi.trigger.get(params)
-        if len(result) == 0:
+        response = self.zapi.trigger.get(params)
+        if len(response) == 0:
             print(":) no issues")
             return 0
         output = []
@@ -2581,7 +2259,7 @@ class zabbix_api:
         output.append(["hostname","key_","trigger","time","prevvalue"])
 
         issues_info={}
-        for trigger in result:
+        for trigger in response:
             output.append([trigger["hosts"][0]["name"],trigger["items"][0]["key_"],trigger["description"],time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(float(trigger["lastchange"]))),trigger["items"][0]["prevvalue"]+trigger["items"][0]["units"]])
             if trigger["hosts"][0]["name"] not in issues_info.keys():
                 issues_info[trigger["hosts"][0]["name"]]=[]
@@ -2595,88 +2273,64 @@ class zabbix_api:
         用于可用性报表使用
         '''
         if value:
-            data = json.dumps({ 
-                               "jsonrpc":"2.0", 
-                               "method":"event.get", 
-                               "params":{ 
-                                         "output":"extend",
-                                         "objectids": triggerid,
-                                         "time_from":time_from,
-                                         "time_till":time_till,
-                                         "value":"1",
-                                         }, 
-                               "auth":self.authID, 
-                               "id":1, 
-                               }) 
+            data_params = {
+                 "output":"extend",
+                 "objectids": triggerid,
+                 "time_from":time_from,
+                 "time_till":time_till,
+                 "value":"1",
+            }
         else:
-            data = json.dumps({ 
-                               "jsonrpc":"2.0", 
-                               "method":"event.get", 
-                               "params":{ 
-                                         "output":"extend",
-                                         "objectids": triggerid,
-                                         "time_from":time_from,
-                                         "time_till":time_till,
-                                         }, 
-                               "auth":self.authID, 
-                               "id":1, 
-                               }) 
-         
-        request = urllib2.Request(self.url,data) 
-        for key in self.header: 
-            request.add_header(key, self.header[key]) 
-              
-        try: 
-            result = urllib2.urlopen(request) 
-        except URLError as e: 
-            print("Error as ", e )
-        else: 
-            response = json.loads(result.read()) 
-            result.close() 
-            # 如果输出值为0时，可用性为100%
-            if len(response['result']) == 0:
+            data_params = {
+                    "output":"extend",
+                    "objectids": triggerid,
+                    "time_from":time_from,
+                    "time_till":time_till,
+                } 
+        response=self.zapi.event.get(data_params)
+        if len(response) == 0:
+            return 0
+        # 当输出的value 包含0值时
+        if not value:
+            # 当输出只有1个值时，可用性为100%
+            if len(response) == 1:
                 return 0
-            # 当输出的value 包含0值时
-            if not value:
-                # 当输出只有1个值时，可用性为100%
-                if len(response['result']) == 1:
-                    return 0
-                # 输出的列表第一个值为0,表示添加此监控项的时间在时间条件之间，应根据添加监控项的时间为起始时间
-                if response['result'][0]["value"] == "0":
-                    time_from_record = int(response['result'][0]["clock"])
-                    response["result"]=response["result"][1:]
-                    time_range = time_till - time_from_record
-                    time_event_sum = 0
-                    time_diff = 0
-                    
-                    for i in range(len(response["result"])):
-                        # 如果取的时间值time_till恰好是还在故障时间
-                        # 则最后一个值为1，同时将time_till - 最后发生故障的时间的值 并入到故障时间内
-                        if (i == (len(response["result"])-1)) and response['result'][i]["value"] == "1":
-                            time_diff = int(time_till) - int(response["result"][i]["clock"])
-                            time_event_sum = time_event_sum + time_diff
-                            break
-                        if(i%2) == 0:
-                            time_diff = int(response["result"][i+1]["clock"]) - int(response["result"][i]["clock"])
-                            time_event_sum = time_event_sum + time_diff
-                    event_diff = float('%0.4f'%(time_event_sum * 100 / float(time_range)))
-                    return event_diff
-                else:
-                    time_from_record = time_from
-                    time_range = time_till - time_from_record
-                    time_event_sum = 0
-                    time_diff = 0
-                    if len(response["result"])%2 == 1:
-                           return 0
-                    for i in range(len(response["result"])):
-                        if(i%2) == 0:
-                            time_diff = int(response["result"][i+1]["clock"]) - int(response["result"][i]["clock"])
-                            time_event_sum = time_event_sum + time_diff
-                    event_diff = float('%0.4f'%(time_event_sum * 100 / float(time_range)))
-                    return event_diff
+            # 输出的列表第一个值为0,表示添加此监控项的时间在时间条件之间，应根据添加监控项的时间为起始时间
+            if response[0]["value"] == "0":
+                time_from_record = int(response[0]["clock"])
+                response=response[1:]
+                time_range = time_till - time_from_record
+                time_event_sum = 0
+                time_diff = 0
+                
+                for i in range(len(response)):
+                    # 如果取的时间值time_till恰好是还在故障时间
+                    # 则最后一个值为1，同时将time_till - 最后发生故障的时间的值 并入到故障时间内
+                    if (i == (len(response)-1)) and response[i]["value"] == "1":
+                        time_diff = int(time_till) - int(response[i]["clock"])
+                        time_event_sum = time_event_sum + time_diff
+                        break
+                    if(i%2) == 0:
+                        time_diff = int(response[i+1]["clock"]) - int(response[i]["clock"])
+                        time_event_sum = time_event_sum + time_diff
+                event_diff = float('%0.4f'%(time_event_sum * 100 / float(time_range)))
+                return event_diff
             else:
-                # 表示包含值为1的事件
-                return 1
+                time_from_record = time_from
+                time_range = time_till - time_from_record
+                time_event_sum = 0
+                time_diff = 0
+                if len(response)%2 == 1:
+                       return 0
+                for i in range(len(response)):
+                    if(i%2) == 0:
+                        time_diff = int(response[i+1]["clock"]) - int(response[i]["clock"])
+                        time_event_sum = time_event_sum + time_diff
+                event_diff = float('%0.4f'%(time_event_sum * 100 / float(time_range)))
+                return event_diff
+        else:
+            # 表示包含值为1的事件
+            return 1
     def __generate_output(self,output_list):
         '''
         内部函数
@@ -2959,5 +2613,6 @@ if __name__ == "__main__":
                 function_result = cmd(*func_args, **kwargs)
             except Exception,e:
                 print(render_doc(cmd))
+                warn_msg("DEBUG")
                 import traceback
                 traceback.print_exc()

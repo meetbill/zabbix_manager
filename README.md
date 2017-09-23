@@ -27,7 +27,9 @@ Daily we need to export the report, use zabbix manager can export xls file using
 
 ## zabbix_api version
 
-* V1.3
+* V1.4
+    * v1.4.01，2017-09-23 [更新] 更新 zabbix_api_lib
+* V1.3[release 下载](https://codeload.github.com/BillWang139967/zabbix_manager/tar.gz/v1.3)
     * v1.3.04，2017-09-22 [更新] 添加 `dev_hosts_device` 输出每台机器的指定挂载目录的使用信息
     * v1.3.03，2017-09-21 [更新] 添加 `dev_hosts_info` 输出常用监控项信息(可以自己定制),优化部分程序
     * v1.3.02，2017-09-16 [更新] 更新程序调用时 `issues` 返回值
