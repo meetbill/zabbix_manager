@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.4.01"
+__version__ = "1.4.02"
  
 import json 
 import ConfigParser
@@ -834,9 +834,9 @@ class zabbix_api:
                             report_min=self.__ByteFormat(report_min)
                             report_max=self.__ByteFormat(report_max)
                             report_avg=self.__ByteFormat(report_avg)
-                    report_min=str(report_min) + units
-                    report_max=str(report_max) + units
-                    report_avg=str(report_avg) + units
+                    report_min=str(report_min) + " " + units
+                    report_max=str(report_max) + " " + units
+                    report_avg=str(report_avg) + " " + units
                 else:
                     report_min="-1"
                     report_max="-1"
@@ -848,7 +848,7 @@ class zabbix_api:
             # 如果是true，是降序
             if self.output_sort in [1,4,5,6]:
                 reverse = self.reverse
-                report_output = sorted(report_output,key=lambda x:float(x[self.output_sort-1]),reverse=reverse)
+                report_output = sorted(report_output,key=lambda x:float(x[self.output_sort-1].split()[0]),reverse=reverse)
             else:
                 print("Does not support this column sorting")
         ################################################################output
@@ -948,9 +948,9 @@ class zabbix_api:
                             report_min=self.__ByteFormat(report_min)
                             report_max=self.__ByteFormat(report_max)
                             report_avg=self.__ByteFormat(report_avg)
-                    report_min=str(report_min) + units
-                    report_max=str(report_max) + units
-                    report_avg=str(report_avg) + units
+                    report_min=str(report_min) + " " + units
+                    report_max=str(report_max) + " " + units
+                    report_avg=str(report_avg) + " " + units
                 else:
                     report_min="-1"
                     report_max="-1"
@@ -962,7 +962,7 @@ class zabbix_api:
             # 如果是true，是降序
             if self.output_sort in [1,4,5,6]:
                 reverse = self.reverse
-                report_output = sorted(report_output,key=lambda x:float(x[self.output_sort-1]),reverse=reverse)
+                report_output = sorted(report_output,key=lambda x:float(x[self.output_sort-1].split()[0]),reverse=reverse)
             else:
                 print("Does not support this column sorting")
         ################################################################output
@@ -1056,9 +1056,9 @@ class zabbix_api:
                             report_min=self.__ByteFormat(report_min)
                             report_max=self.__ByteFormat(report_max)
                             report_avg=self.__ByteFormat(report_avg)
-                    report_min=str(report_min) + units
-                    report_max=str(report_max) + units
-                    report_avg=str(report_avg) + units
+                    report_min=str(report_min) + " " + units
+                    report_max=str(report_max) + " " + units
+                    report_avg=str(report_avg) + " " + units
                 else:
                     report_min="-1"
                     report_max="-1"
@@ -1070,7 +1070,7 @@ class zabbix_api:
             # 如果是true，是降序
             if self.output_sort in [1,4,5,6]:
                 reverse = self.reverse
-                report_output = sorted(report_output,key=lambda x:float(x[self.output_sort-1]),reverse=reverse)
+                report_output = sorted(report_output,key=lambda x:float(x[self.output_sort-1].split()[0]),reverse=reverse)
             else:
                 print("Does not support this column sorting")
         ################################################################output
