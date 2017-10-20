@@ -319,6 +319,10 @@ class zabbix_api:
     def dev_hosts_info(self): 
         '''
         '''
+        # 二次开发修改列表
+        key_list = ["system.cpu.util[,user]","vm.memory.size[available]","vm.memory.size[total]"]
+        #######################################################################################
+        key_list_num = len(key_list)
         host_list = self._hosts_get()
         output = []
         output.append(["hostname","ip","CPU","mem","available"])
@@ -339,41 +343,47 @@ class zabbix_api:
                                          "hostids":hostid,
                                          "monitored":True,
                                          "filter":{
-                                             "key_":["system.cpu.util[,user]","vm.memory.size[available]","vm.memory.size[total]"]
+                                             "key_": key_list
                                              }
                                          }) 
             # 返回信息使用
             host_info = {}
+            ## 每个 item 返回值{u'itemid': u'23889', u'lastvalue': u'16748281856', u'key_': u'vm.memory.size[total]', u'name': u'Total memory'}
             if len(response) == 0:
+                ################################### 作为终端输出显示
                 output.append([hostname,hostip,"-1","-1",available[host_available]])
-                ###################################
+                ################################### 作为程序调用时返回值使用
                 host_info["hostname"] = hostname
                 host_info["hostip"] = hostip
                 host_info["cpu"] = "-1"
                 host_info["mem"] = "-1"
                 host_info["host_available"] = host_available
-            elif len(response) != 3:
+            elif len(response) != key_list_num:
+                ################################### 作为终端输出显示
+                output.append([hostname,hostip,"-2","-2",available[host_available]])
+                ################################### 作为程序调用时返回值使用
                 host_info["hostname"] = hostname
                 host_info["hostip"] = hostip
                 host_info["cpu"] = "-2"
                 host_info["mem"] = "-2"
                 host_info["host_available"] = host_available
-            # {u'itemid': u'23889', u'lastvalue': u'16748281856', u'key_': u'vm.memory.size[total]', u'name': u'Total memory'}
             else:
                 cpu_p = float('%0.2f' % float(response[0]["lastvalue"]))
                 if float(response[2]["lastvalue"]) == 0.0 :
                     mem_p = "-1"
                 else:
                     mem_p = float('%0.2f'%((float(response[2]["lastvalue"]) - float(response[1]["lastvalue"]))/float(response[2]["lastvalue"]) * 100))
+                ################################### 作为终端输出显示
                 output.append([hostname,hostip,str(cpu_p),str(mem_p),available[host_available]])
-                ###################################
+                ################################### 作为程序调用时返回值使用
                 host_info["hostname"] = hostname
                 host_info["hostip"] = hostip
                 host_info["cpu"] = str(cpu_p)
                 host_info["mem"] = str(mem_p)
                 host_info["host_available"] = host_available
-            ###################################
+            ################################### 作为程序调用时返回值使用
             return_info.append(host_info)
+        ################################### 作为终端输出显示
         self.__generate_output(output)
         return return_info
     def dev_hosts_device(self,mountdir = "/"): 
