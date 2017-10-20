@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.4.02"
+__version__ = "1.4.03"
  
 import json 
 import ConfigParser
@@ -351,6 +351,12 @@ class zabbix_api:
                 host_info["hostip"] = hostip
                 host_info["cpu"] = "-1"
                 host_info["mem"] = "-1"
+                host_info["host_available"] = host_available
+            elif len(response) != 3:
+                host_info["hostname"] = hostname
+                host_info["hostip"] = hostip
+                host_info["cpu"] = "-2"
+                host_info["mem"] = "-2"
                 host_info["host_available"] = host_available
             # {u'itemid': u'23889', u'lastvalue': u'16748281856', u'key_': u'vm.memory.size[total]', u'name': u'Total memory'}
             else:
