@@ -28,6 +28,7 @@ Daily we need to export the report, use zabbix manager can export xls file using
 ## zabbix_api version
 
 * V1.4
+    * v1.4.04，2017-11-27 [更新] 更新可用性报表计算方法[详细](https://github.com/BillWang139967/zabbix_manager/wiki/app_report_available) 
     * v1.4.03，2017-10-20 [更新] 添加 dev_hosts_info 判断返回值个数 
     * v1.4.02，2017-10-20 [修复] 修复 zabbix 日常使用报表因添加数据单位导致排序无法正常运行问题
     * v1.4.01，2017-09-23 [更新] 更新 zabbix_api_lib

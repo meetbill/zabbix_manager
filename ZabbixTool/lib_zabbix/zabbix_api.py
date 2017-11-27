@@ -3,7 +3,7 @@
 #
 # {"status":"OK","output":output}
 from __future__ import print_function
-__version__ = "1.4.03"
+__version__ = "1.4.04"
  
 import json 
 import ConfigParser
@@ -1311,6 +1311,7 @@ class zabbix_api:
         host_list = self._hosts_get()
         for host_info in host_list: 
             # host_info[1]是host_name,host_info[2]是name
+            hostid = host_info[0]
             hostname = host_info[2]
             hostip = host_info[3]
             triggerid_all_list = self.__triggers_get(host_info[0])
@@ -1322,21 +1323,25 @@ class zabbix_api:
                 trigger_key = triggerid_sub_list[2]
                 trigger_prevvalue = triggerid_sub_list[3]
                 trigger_units = triggerid_sub_list[4]
+                #
+                # 输出对应的 key
                 if itemkey_list:
                     if trigger_key not in itemkey_list:
                         continue
-                event_result = self.__event_get(triggerid,time_from,time_till,value="1")
-                if not event_result:
+                #
+                ###################################
+                # print(trigger_name)
+                # event_result 为可用性%
+                event_result = self.__calculate_availability(triggerid,time_from,time_till)
+                if event_result == 100:
                     report_output.append([hostname,hostip,trigger_name,"0","100%",trigger_prevvalue+trigger_units])
+                    self.logger.info("hostid[%s],triggerid[%s],trigger_name[%s],Availability[100%%]"%(str(hostid),str(triggerid),trigger_name))
                 else:
-                    event_result = self.__event_get(triggerid,time_from,time_till)
-                    if not event_result:
-                        report_output.append([hostname,hostip,trigger_name,"0","100%",trigger_prevvalue+trigger_units])
-                    else:
-                        event_result = float(event_result)
-                        event_diff = "%0.4f%%"%event_result
-                        event_value = "%0.4f%%"%(100.0 - event_result)
-                        report_output.append([hostname,hostip,trigger_name,event_diff,event_value,trigger_prevvalue+trigger_units])
+                    event_result = float(event_result)
+                    event_ok = "%0.4f%%"%event_result
+                    event_problem = "%0.4f%%"%(100.0 - event_result)
+                    self.logger.info("hostid[%s],triggerid[%s],trigger_name[%s],Availability[%s]"%(str(hostid),str(triggerid),trigger_name,event_ok))
+                    report_output.append([hostname,hostip,trigger_name,event_problem,event_ok,trigger_prevvalue+trigger_units])
         if self.terminal_table:
             table_show=[]
             table_show.append(["hostname","ip","Name","Problems","OK","prevvalue"])
@@ -2282,71 +2287,73 @@ class zabbix_api:
             issues_info[trigger["hosts"][0]["name"]].append(trigger["items"][0]["key_"])
         self.__generate_output(output)
         return issues_info
-         
-    def __event_get(self, triggerid='',time_from='',time_till='',value=""): 
+    def __calculate_availability(self, triggerid='',time_from='',time_till=''): 
         '''
         The method allows to retrieve events according to the given parameters.
         用于可用性报表使用
         '''
-        if value:
-            data_params = {
-                 "output":"extend",
-                 "objectids": triggerid,
-                 "time_from":time_from,
-                 "time_till":time_till,
-                 "value":"1",
-            }
-        else:
-            data_params = {
-                    "output":"extend",
-                    "objectids": triggerid,
-                    "time_from":time_from,
-                    "time_till":time_till,
-                } 
+        ## 用于获取区间前的可用性状态
+        data_params_startstatus = {
+                "output":["eventid","clock","value"],
+                "objectids":triggerid,
+                "source":0,
+                "object":0,
+                "time_till":time_from,
+                "sortfield":["clock", "eventid"],
+                "sortorder":"DESC",
+                "limit":1
+            } 
+        data_params = {
+                "output":"extend",
+                "source":0,
+                "object":0,
+                "objectids": triggerid,
+                "time_from":time_from,
+                "time_till":time_till,
+                "sortfield":["eventid"],
+            } 
+        #
+        # default startstatus(OK)--"0",startstatus(Problems)---"1"
+        startstatus = "0"
+        ## 获取区间前状态
+        response_startstatus=self.zapi.event.get(data_params_startstatus)
+        if response_startstatus:
+            startstatus=response_startstatus[0]["value"]
+        ## 获取区间内状态
         response=self.zapi.event.get(data_params)
-        if len(response) == 0:
-            return 0
-        # 当输出的value 包含0值时
-        if not value:
-            # 当输出只有1个值时，可用性为100%
-            if len(response) == 1:
+        ### 如果当前区间没有触发器事件变动，则可用性为区间前的状态
+        
+        if not response:
+            ### 区间前的状态为 problem 时返回0
+            if startstatus == "1":
                 return 0
-            # 输出的列表第一个值为0,表示添加此监控项的时间在时间条件之间，应根据添加监控项的时间为起始时间
-            if response[0]["value"] == "0":
-                time_from_record = int(response[0]["clock"])
-                response=response[1:]
-                time_range = time_till - time_from_record
-                time_event_sum = 0
-                time_diff = 0
-                
-                for i in range(len(response)):
-                    # 如果取的时间值time_till恰好是还在故障时间
-                    # 则最后一个值为1，同时将time_till - 最后发生故障的时间的值 并入到故障时间内
-                    if (i == (len(response)-1)) and response[i]["value"] == "1":
-                        time_diff = int(time_till) - int(response[i]["clock"])
-                        time_event_sum = time_event_sum + time_diff
-                        break
-                    if(i%2) == 0:
-                        time_diff = int(response[i+1]["clock"]) - int(response[i]["clock"])
-                        time_event_sum = time_event_sum + time_diff
-                event_diff = float('%0.4f'%(time_event_sum * 100 / float(time_range)))
-                return event_diff
             else:
-                time_from_record = time_from
-                time_range = time_till - time_from_record
-                time_event_sum = 0
-                time_diff = 0
-                if len(response)%2 == 1:
-                       return 0
-                for i in range(len(response)):
-                    if(i%2) == 0:
-                        time_diff = int(response[i+1]["clock"]) - int(response[i]["clock"])
-                        time_event_sum = time_event_sum + time_diff
-                event_diff = float('%0.4f'%(time_event_sum * 100 / float(time_range)))
-                return event_diff
+                return 100
         else:
-            # 表示包含值为1的事件
-            return 1
+            ok_time = 0
+            problem_time = 0
+            time = time_from
+            laststatus = startstatus
+            for event in response:
+                clock = int(event["clock"])
+                value = event["value"]
+                # 状态变化的时间
+                diff = clock - time
+                time = clock
+                #print(laststatus)
+                #print(type(laststatus))
+                if laststatus == "0":
+                    ok_time += diff
+                    laststatus = value
+                else:
+                    problem_time += diff
+                    laststatus = value
+            # 如果最终触发器状态为 OK，则正常时间=正常时间+报表endTime-time(循环最后状态时间)
+            if laststatus == "0":
+                ok_time = ok_time + ( time_till - time )
+            total_time = time_till - time_from
+            available_rate = float('%0.4f'%(ok_time * 100 / float(total_time)))
+            return available_rate
     def __generate_output(self,output_list):
         '''
         内部函数
