@@ -57,6 +57,7 @@ def create_config():
     config.read(zabbix_tool)
     applitions = config.get("create_file", "applitions")
     monit_config = config.get("create_file","monit_config")
+    ignore_key_list = config.get("create_file","ignore_key").split(",")
 
     zabbix=zabbix_api(output=False)
 
@@ -77,7 +78,13 @@ def create_config():
         items = zabbix.item_list(hostid,applitions)
         if not items:
             items = []
-        hostname_key[hostname]=items
+        else:
+            for ignore_key_item in ignore_key_list:
+                if ignore_key_item in items:
+                    items.remove(ignore_key_item)
+            hostname_key[hostname]=items
+
+
 
     hostname_ip=json.dumps(hostname_ip,indent=4)
     #print hostname_ip
