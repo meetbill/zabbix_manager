@@ -3,12 +3,13 @@
 """
 # Author: Bill
 # Created Time : 2016-10-25 10:01:13
+# Update Time : 2018-02-11 23:28:53
 
 # File Name: main.py
 # Description:
 
 """
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 import sys
 import os
 root_path = os.path.split(os.path.realpath(__file__))[0]
@@ -67,6 +68,9 @@ def create_config():
     # 主机名和 监控项字典
     hostname_key={}
 
+    # key_和监控项字典
+    service_key={}
+
     host_list=zabbix.host_list()
     for host in host_list:
         # host[0]---hostid ,host[1]---hostname,host[2]---hostip
@@ -82,19 +86,27 @@ def create_config():
             for ignore_key_item in ignore_key_list:
                 if ignore_key_item in items:
                     items.remove(ignore_key_item)
+            for key_item in items:
+                service_key[key_item]=""
             hostname_key[hostname]=items
 
 
-
+    for key_item in service_key:
+        service_name = key_item.replace(".","_").replace(",","").replace("[","").replace("]","")
+        service_key[key_item]=service_name
+        
     hostname_ip=json.dumps(hostname_ip,indent=4)
     #print hostname_ip
     hostname_key=json.dumps(hostname_key,indent=4)
     #print hostname_key
+    service_key=json.dumps(service_key,indent=4)
+    #print service_key
 
     # 生成配置文件
     config_file = "#!/usr/bin/python\n#coding=utf8\n"
     config_file = config_file + "hostname_ip="+hostname_ip+"\n"
     config_file = config_file + "hostname_key="+hostname_key+"\n"
+    config_file = config_file + "service_key="+service_key+"\n"
 
     # 写入配置文件
     fo = open(monit_config, "wb")
