@@ -30,9 +30,9 @@ Daily we need to export the report, use zabbix manager can export xls file using
 * V1.4
     * v1.4.04，2017-11-27 [更新] 更新可用性报表计算方法 [详细](https://github.com/BillWang139967/zabbix_manager/wiki/app_report_available)
     * v1.4.03，2017-10-20 [更新] 添加 dev_hosts_info 判断返回值个数
-    * v1.4.02，2017-10-20 [修复] 修复 zabbix 日常使用报表因添加数据单位导致排序无法正常运行问题
-    * v1.4.01，2017-09-23 [更新] 更新 zabbix_api_lib
-* V1.3[release 下载](https://codeload.github.com/BillWang139967/zabbix_manager/tar.gz/v1.3)
+    * v1.4.02，2017-10-20 [修复] 修复 Zabbix 日常使用报表因添加数据单位导致排序无法正常运行问题
+    * v1.4.01，2017-09-23 [更新] 更新 Zabbix_api_lib
+* V1.3[Release 下载](https://codeload.github.com/BillWang139967/zabbix_manager/tar.gz/v1.3)
     * v1.3.04，2017-09-22 [更新] 添加 `dev_hosts_device` 输出每台机器的指定挂载目录的使用信息
     * v1.3.03，2017-09-21 [更新] 添加 `dev_hosts_info` 输出常用监控项信息（可以自己定制）, 优化部分程序
     * v1.3.02，2017-09-16 [更新] 更新程序调用时 `issues` 返回值
@@ -54,19 +54,19 @@ Daily we need to export the report, use zabbix manager can export xls file using
     * v1.2.0，2016-11-27  [修改] `zabbix_api` 调用方式（报表类函数不变）
 * V1.1
     * v1.1.7，2016-11-25 优化程序
-    * v1.1.6，2016-11-08 add 通过 profile 参数选择配置文件中不同的 `section`
-    * v1.1.5，2016-10-24 add `report_available2` 可以对特定 item 进行输出，除报表项外，其他函数统一输出函数
-    * v1.1.4，2016-10-24 add `issues`获取最近问题
-    * v1.1.3，2016-09-09 add report_available2, 可设置排序
-    * v1.1.2，2016-09-05 add zabbix_manager gui
-    * v1.1.1，2016-08-22 add mysql_quota
-    * v1.1.0，2016-07-14 release 1.1.0
+    * v1.1.6，2016-11-08 Add 通过 profile 参数选择配置文件中不同的 `section`
+    * v1.1.5，2016-10-24 Add `report_available2` 可以对特定 item 进行输出，除报表项外，其他函数统一输出函数
+    * v1.1.4，2016-10-24 Add `issues`获取最近问题
+    * v1.1.3，2016-09-09 Add report_available2, 可设置排序
+    * v1.1.2，2016-09-05 Add zabbix_manager gui
+    * v1.1.1，2016-08-22 Add mysql_quota
+    * v1.1.0，2016-07-14 Release 1.1.0
 * V1.0
-    * v1.0.8，2016-07-13 add report
-    * v1.0.6，2016-06-23 add rule and discovery manage
-    * v1.0.5，2016-06-19 add mediatype manage
-    * v1.0.4，2016-06-18 add usergroup manage
-    * v1.0.3，2016-06-11 add history_report
+    * v1.0.8，2016-07-13 Add report
+    * v1.0.6，2016-06-23 Add rule and discovery manage
+    * v1.0.5，2016-06-19 Add mediatype manage
+    * v1.0.4，2016-06-18 Add usergroup manage
+    * v1.0.3，2016-06-11 Add history_report
     * v1.0.2，2016-06-03 Modify the command line in interactive mode
     * v1.0.1，2016-04-16 First edit
 

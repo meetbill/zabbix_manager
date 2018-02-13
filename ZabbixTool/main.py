@@ -3,13 +3,13 @@
 """
 # Author: Bill
 # Created Time : 2016-10-25 10:01:13
-# Update Time : 2018-02-11 23:28:53
+# Update Time : 2018-02-13 18:18:23
 
 # File Name: main.py
 # Description:
 
 """
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 import sys
 import os
 root_path = os.path.split(os.path.realpath(__file__))[0]
@@ -119,15 +119,19 @@ def status():
     #print host_list
     for host in host_list:
         host_ip[host[1]]=host[2]
-    print host_ip
-    #for host in host_list:
-    issues_list=zabbix.issues()
+    # print host_ip
+    # for host in host_list:
+    issues_dict = zabbix.issues()
     exception_host=[]
 
     ## 异常主机
-    for issues in issues_list:
-        exception_host.append(issues)
-    exception_host=list(set(exception_host))
+    if isinstance(issues_dict,dict):
+        for issues in issues_dict:
+            exception_host.append(issues)
+        exception_host = list(set(exception_host))
+    else:
+        exception_host = []
+
     print "exception_host",exception_host
 
     ## 正常主机
@@ -136,6 +140,7 @@ def status():
         if host not in exception_host:
             normal_host.append(host)
     print "normal_host",normal_host
+
 def version():
     print __version__
 
